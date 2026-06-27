@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Audit d'implantation immobilière</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+html,body{margin:0;padding:0}
+.au-vars{--bg:#0b0b10;--bg2:#131319;--bg3:#1a1a22;--bg4:#22222c;--border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.12);--text:#e6e6f0;--text2:#8080a0;--text3:#505068;--accent:#6c63ff;--accent2:#9b95ff;--green:#1D9E75;--gold:#BA7517;--red:#E24B4A;--blue:#378ADD;--purple:#7F77DD;--pink:#D4537E;--r:6px;--r2:10px;--r3:14px;--sans:system-ui,sans-serif;min-height:100vh;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px}
+.au-vars *,.au-vars *::before,.au-vars *::after{box-sizing:border-box;margin:0;padding:0}
+.au-wrap{display:flex}
+.au-side{width:220px;flex-shrink:0;background:var(--bg2);border-right:.5px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.au-side-head{padding:14px 16px;border-bottom:.5px solid var(--border)}
+.au-side-title{font-size:13px;font-weight:600;color:var(--text)}
+.au-side-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.au-nav{flex:1;overflow-y:auto;padding:6px 0}
+.au-nav-item{display:flex;align-items:center;gap:9px;padding:7px 16px;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;transition:all .15s;border-left:2px solid transparent}
+.au-nav-item:hover{color:var(--text);background:var(--bg3)}
+.au-nav-item.active{color:var(--text);background:var(--bg3);border-left-color:var(--accent)}
+.au-nav-item i{font-size:14px;flex-shrink:0}
+.au-nav-dot{width:5px;height:5px;border-radius:50%;background:var(--green);margin-left:auto;flex-shrink:0;opacity:.8}
+.au-progress{padding:10px 14px;border-top:.5px solid var(--border)}
+.au-prog-hd{font-size:10px;color:var(--text3);display:flex;justify-content:space-between;margin-bottom:5px}
+.au-prog-track{height:3px;background:var(--bg4);border-radius:99px;overflow:hidden}
+.au-prog-fill{height:100%;background:linear-gradient(to right,var(--green),var(--accent));border-radius:99px;transition:width .4s}
+.au-btn-rpt{margin:10px 14px 14px;padding:9px;border-radius:var(--r2);background:linear-gradient(135deg,#1D9E75,#0E6B54);border:none;color:#fff;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:var(--sans);width:calc(100% - 28px)}
+.au-btn-rpt:hover{opacity:.85}
+.au-main{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+.au-head{background:var(--bg2);border-bottom:.5px solid var(--border);padding:14px 24px}
+.au-breadcrumb{font-size:11px;color:var(--text3);display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.au-section-title{font-size:16px;font-weight:600;display:flex;align-items:center;gap:10px}
+.au-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.au-desc{font-size:12px;color:var(--text2);margin-top:3px}
+.au-body{padding:20px 24px;flex:1}
+.card{background:var(--bg2);border:.5px solid var(--border);border-radius:var(--r2);padding:16px;margin-bottom:12px}
+.sec-title{font-size:9px;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding-bottom:6px;border-bottom:.5px solid var(--border);font-weight:500;display:flex;align-items:center;gap:8px}
+.new-bdg{padding:1px 6px;border-radius:3px;background:rgba(186,117,23,.15);color:var(--gold);font-size:9px;font-weight:700}
+.fg{display:grid;gap:12px;margin-bottom:12px}
+.fg1{grid-template-columns:1fr}
+.fg2{grid-template-columns:1fr 1fr}
+.fg3{grid-template-columns:1fr 1fr 1fr}
+.fld{display:flex;flex-direction:column;gap:4px}
+.fld label{font-size:11px;color:var(--text2);display:flex;align-items:center;gap:6px}
+.fld input,.fld select,.fld textarea{background:var(--bg);border:.5px solid var(--border2);border-radius:var(--r);padding:7px 10px;font-size:13px;color:var(--text);font-family:var(--sans);outline:none;transition:border-color .15s;width:100%}
+.fld input:focus,.fld select:focus,.fld textarea:focus{border-color:var(--green)}
+.fld textarea{resize:vertical;min-height:56px}
+.fld .hint{font-size:10px;color:var(--text3);line-height:1.4}
+.stars{display:flex;gap:3px;align-items:center}
+.star{font-size:20px;cursor:pointer;color:var(--bg4);transition:color .1s;line-height:1}
+.star.on{color:var(--gold)}
+.star-val{font-size:11px;color:var(--text3);margin-left:6px}
+.ms-grid{display:flex;flex-wrap:wrap;gap:6px}
+.ms-chip{display:flex;align-items:center;gap:5px;padding:4px 10px;border:.5px solid var(--border2);border-radius:20px;font-size:11px;color:var(--text2);cursor:pointer;transition:all .15s;background:var(--bg);user-select:none}
+.ms-chip:hover{border-color:var(--text3);color:var(--text)}
+.ms-chip.sel{background:rgba(108,99,255,.15);border-color:var(--accent);color:var(--accent2)}
+.rpt-wrap{padding:20px 24px;max-width:840px}
+.rpt-hdr{background:var(--bg2);border:.5px solid var(--border);border-radius:var(--r3);padding:20px;margin-bottom:16px}
+.rpt-eyebrow{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;font-weight:500}
+.rpt-name{font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px}
+.rpt-meta{font-size:12px;color:var(--text2)}
+.rpt-kpi-row{display:flex;gap:12px;margin-top:16px}
+.rpt-kpi{flex:1;background:var(--bg3);border-radius:var(--r2);padding:12px 10px;text-align:center;border:.5px solid var(--border)}
+.rpt-kpi-v{font-size:26px;font-weight:700;line-height:1}
+.rpt-kpi-l{font-size:10px;color:var(--text3);margin-top:4px;line-height:1.3}
+.rpt-section{margin-bottom:12px;border-radius:var(--r2);overflow:hidden;border:.5px solid var(--border)}
+.rpt-sec-hd{padding:8px 14px;display:flex;align-items:center;gap:8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#fff}
+.rpt-row{display:flex;align-items:baseline;justify-content:space-between;padding:7px 14px;gap:12px;border-bottom:.5px solid var(--border)}
+.rpt-row:last-child{border-bottom:none}
+.rpt-row:nth-child(even){background:var(--bg3)}
+.rpt-k{font-size:11px;color:var(--text2);flex-shrink:0;min-width:195px;display:flex;align-items:center;gap:6px}
+.rpt-v{font-size:11px;color:var(--text);font-weight:500;text-align:right;flex:1}
+.rpt-alerts{background:rgba(186,117,23,.07);border:.5px solid rgba(186,117,23,.3);border-radius:var(--r2);padding:14px;margin-bottom:12px}
+.rpt-alerts-title{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.rpt-alert{display:flex;gap:8px;padding:6px 0;border-bottom:.5px solid rgba(186,117,23,.15);font-size:12px;color:#EF9F27;line-height:1.45}
+.rpt-alert:last-child{border-bottom:none}
+.au-actions{display:flex;gap:8px;padding:12px 24px;border-top:.5px solid var(--border);background:var(--bg2);flex-shrink:0}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--r2);font-size:12px;font-weight:500;cursor:pointer;border:.5px solid var(--border2);background:transparent;color:var(--text2);transition:all .15s;font-family:var(--sans)}
+.btn:hover{background:var(--bg3);color:var(--text)}
+.btn-primary{background:var(--green);border-color:var(--green);color:#fff}
+.btn-primary:hover{background:#0F6E56}
+.au-landing{display:flex;align-items:center;justify-content:center;min-height:100vh}
+.au-landing-inner{width:100%;max-width:640px;padding:40px 24px}
+.au-landing-title{font-size:20px;font-weight:700;margin-bottom:4px}
+.au-landing-sub{font-size:12px;color:var(--text3);margin-bottom:28px}
+.au-landing-actions{display:flex;gap:10px;margin-bottom:28px}
+.au-landing-card{background:var(--bg2);border:.5px solid var(--border);border-radius:var(--r2);padding:14px;cursor:pointer;flex:1;text-align:center;transition:all .15s}
+.au-landing-card:hover{border-color:var(--accent);background:var(--bg3)}
+.au-landing-card i{font-size:22px;color:var(--accent);display:block;margin-bottom:6px}
+.au-landing-card span{font-size:12px;font-weight:600}
+.au-saved-title{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);font-weight:600;margin-bottom:10px}
+.au-saved-item{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg2);border:.5px solid var(--border);border-radius:var(--r);margin-bottom:6px;cursor:pointer;transition:all .15s}
+.au-saved-item:hover{border-color:var(--accent)}
+.au-saved-item.selected{border-color:var(--accent);background:rgba(108,99,255,.08)}
+.au-saved-name{flex:1;font-size:13px;font-weight:500}
+.au-saved-meta{font-size:10px;color:var(--text3)}
+.au-saved-check{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+.au-saved-check.checked{background:var(--accent);border-color:var(--accent);color:#fff}
+.au-saved-del{font-size:14px;color:var(--text3);cursor:pointer;padding:2px 4px;border-radius:4px}
+.au-saved-del:hover{color:var(--red);background:rgba(226,75,74,.1)}
+.au-compare-bar{display:flex;align-items:center;gap:10px;margin-top:16px;padding:12px 14px;background:var(--bg2);border:.5px solid var(--border);border-radius:var(--r2)}
+.au-compare-bar>span{flex:1;font-size:12px;color:var(--text2)}
+.cmp-wrap{padding:20px 24px;max-width:1100px}
+.cmp-table{width:100%;border-collapse:collapse;font-size:12px}
+.cmp-table th,.cmp-table td{padding:7px 10px;border-bottom:.5px solid var(--border);text-align:left;vertical-align:top}
+.cmp-table th{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);font-weight:600;background:var(--bg2);position:sticky;top:0}
+.cmp-table td:first-child{color:var(--text2);min-width:180px}
+.cmp-table tr:hover td{background:var(--bg3)}
+.cmp-sec-row td{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding-top:14px;border-bottom:none}
+.cmp-map-wrap{position:relative;z-index:0;margin-bottom:16px;contain:layout style}
+.cmp-map{height:360px;border-radius:var(--r2);border:.5px solid var(--border);position:relative;z-index:0;overflow:hidden}
+.cmp-map .leaflet-pane{z-index:1}
+.cmp-map .leaflet-control{z-index:2}
+.cmp-legend{display:flex;flex-wrap:wrap;gap:12px;padding:10px 14px;background:var(--bg2);border:.5px solid var(--border);border-radius:var(--r2);margin-top:8px;font-size:11px;color:var(--text2)}
+.cmp-legend-item{display:flex;align-items:center;gap:5px}
+.cmp-legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.cmp-map-loading{height:360px;display:flex;align-items:center;justify-content:center;background:var(--bg2);border-radius:var(--r2);border:.5px solid var(--border);color:var(--text3);font-size:13px}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.cmp-map-error{padding:12px;background:rgba(226,75,74,.08);border:.5px solid rgba(226,75,74,.3);border-radius:var(--r2);margin-bottom:16px;font-size:12px;color:var(--red)}
+@media print{.au-side,.au-actions,.print-hide{display:none!important}.print-only{display:block!important}.au-vars{background:#fff!important;color:#000!important}.au-wrap{display:block!important;background:#fff!important;color:#000!important}.au-main{overflow:visible!important}.rpt-wrap,.cmp-wrap{padding:0!important;max-width:100%!important}.rpt-sec-hd{-webkit-print-color-adjust:exact;print-color-adjust:exact}.rpt-kpi{background:#f4f4f8!important;border:1px solid #ccc!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.rpt-kpi-v,.rpt-kpi-l{-webkit-print-color-adjust:exact;print-color-adjust:exact}.rpt-row:nth-child(even){background:#f9f9f9!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.rpt-k{color:#555!important}.rpt-v{color:#111!important}.cmp-table{font-size:10px}.cmp-table th{background:#f0f0f0!important;color:#333!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.cmp-table td{border-color:#ddd!important;color:#222!important}.cmp-sec-row td{-webkit-print-color-adjust:exact;print-color-adjust:exact}.rpt-hdr{background:#f4f4f8!important;border:1px solid #ccc!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/htm@3.1.1/preact/standalone.umd.js"></script>
+<script>
+// htm/preact standalone exposes: htmPreact.html, htmPreact.render, htmPreact.Component, htmPreact.useState, etc.
+var html = htmPreact.html;
+var render = htmPreact.render;
+var useState = htmPreact.useState;
+var useMemo = htmPreact.useMemo;
+var useEffect = htmPreact.useEffect;
+var useCallback = htmPreact.useCallback;
+
+// ─── i18n ──────────────────────────────────────────────────────
+var LANGS = {
+  fr:{flag:'🇫🇷',name:'Français'},en:{flag:'🇬🇧',name:'English'},de:{flag:'🇩🇪',name:'Deutsch'},
+  es:{flag:'🇪🇸',name:'Español'},it:{flag:'🇮🇹',name:'Italiano'},pt:{flag:'🇵🇹',name:'Português'},nl:{flag:'🇳🇱',name:'Nederlands'}
+};
+var I18N = {
+  // App chrome
+  app_title:{fr:"Audit d'implantation immobilière",en:'Real Estate Site Audit',de:'Standort-Audit Immobilien',es:'Auditoría de implantación inmobiliaria',it:'Audit di localizzazione immobiliare',pt:'Auditoria de implantação imobiliária',nl:'Vastgoed locatie-audit'},
+  app_sub:{fr:'Créez un nouvel audit, reprenez un existant, ou comparez jusqu\'à 3 sites.',en:'Create a new audit, resume an existing one, or compare up to 3 sites.',de:'Erstellen Sie ein neues Audit, setzen Sie ein bestehendes fort oder vergleichen Sie bis zu 3 Standorte.',es:'Cree una nueva auditoría, retome una existente o compare hasta 3 sitios.',it:'Crea un nuovo audit, riprendi uno esistente o confronta fino a 3 siti.',pt:'Crie uma nova auditoria, retome uma existente ou compare até 3 locais.',nl:'Maak een nieuwe audit, hervat een bestaande of vergelijk tot 3 locaties.'},
+  new_audit:{fr:'Nouvel audit',en:'New audit',de:'Neues Audit',es:'Nueva auditoría',it:'Nuovo audit',pt:'Nova auditoria',nl:'Nieuwe audit'},
+  import_json:{fr:'Importer JSON',en:'Import JSON',de:'JSON importieren',es:'Importar JSON',it:'Importa JSON',pt:'Importar JSON',nl:'JSON importeren'},
+  saved_audits:{fr:'Audits enregistrés',en:'Saved audits',de:'Gespeicherte Audits',es:'Auditorías guardadas',it:'Audit salvati',pt:'Auditorias salvas',nl:'Opgeslagen audits'},
+  compare:{fr:'Comparer',en:'Compare',de:'Vergleichen',es:'Comparar',it:'Confronta',pt:'Comparar',nl:'Vergelijken'},
+  cancel:{fr:'Annuler',en:'Cancel',de:'Abbrechen',es:'Cancelar',it:'Annulla',pt:'Cancelar',nl:'Annuleren'},
+  back:{fr:'Retour',en:'Back',de:'Zurück',es:'Volver',it:'Indietro',pt:'Voltar',nl:'Terug'},
+  back_home:{fr:"Retour à l'accueil",en:'Back to home',de:'Zurück zur Startseite',es:'Volver al inicio',it:'Torna alla home',pt:'Voltar ao início',nl:'Terug naar start'},
+  generate_report:{fr:'Générer le rapport',en:'Generate report',de:'Bericht erstellen',es:'Generar informe',it:'Genera rapporto',pt:'Gerar relatório',nl:'Rapport genereren'},
+  save_export:{fr:'Exporter JSON',en:'Export JSON',de:'JSON exportieren',es:'Exportar JSON',it:'Esporta JSON',pt:'Exportar JSON',nl:'JSON exporteren'},
+  print_pdf:{fr:'Imprimer / PDF',en:'Print / PDF',de:'Drucken / PDF',es:'Imprimir / PDF',it:'Stampa / PDF',pt:'Imprimir / PDF',nl:'Afdrukken / PDF'},
+  completion:{fr:'Complétion',en:'Completion',de:'Fortschritt',es:'Completado',it:'Completamento',pt:'Conclusão',nl:'Voltooiing'},
+  selected:{fr:'sélectionnés',en:'selected',de:'ausgewählt',es:'seleccionados',it:'selezionati',pt:'selecionados',nl:'geselecteerd'},
+  no_name:{fr:'Sans nom',en:'Unnamed',de:'Ohne Name',es:'Sin nombre',it:'Senza nome',pt:'Sem nome',nl:'Naamloos'},
+  score:{fr:'Score',en:'Score',de:'Bewertung',es:'Puntuación',it:'Punteggio',pt:'Pontuação',nl:'Score'},
+  report_title:{fr:"Rapport d'audit d'implantation immobilière",en:'Real Estate Site Audit Report',de:'Standort-Audit Bericht',es:'Informe de auditoría de implantación',it:"Rapporto di audit di localizzazione",pt:'Relatório de auditoria de implantação',nl:'Vastgoed locatie-audit rapport'},
+  report_of:{fr:'Rapport',en:'Report',de:'Bericht',es:'Informe',it:'Rapporto',pt:'Relatório',nl:'Rapport'},
+  fields_filled:{fr:'champs',en:'fields',de:'Felder',es:'campos',it:'campi',pt:'campos',nl:'velden'},
+  alerts:{fr:"Points d'attention",en:'Attention points',de:'Aufmerksamkeitspunkte',es:'Puntos de atención',it:'Punti di attenzione',pt:'Pontos de atenção',nl:'Aandachtspunten'},
+  favorable:{fr:'Favorable',en:'Favorable',de:'Günstig',es:'Favorable',it:'Favorevole',pt:'Favorável',nl:'Gunstig'},
+  mixed:{fr:'Mitigé',en:'Mixed',de:'Gemischt',es:'Mixto',it:'Misto',pt:'Misto',nl:'Gemengd'},
+  unfavorable:{fr:'Défavorable',en:'Unfavorable',de:'Ungünstig',es:'Desfavorable',it:'Sfavorevole',pt:'Desfavorável',nl:'Ongunstig'},
+  confidential:{fr:'Confidentiel',en:'Confidential',de:'Vertraulich',es:'Confidencial',it:'Riservato',pt:'Confidencial',nl:'Vertrouwelijk'},
+  comparison_of:{fr:'Comparaison de',en:'Comparison of',de:'Vergleich von',es:'Comparación de',it:'Confronto di',pt:'Comparação de',nl:'Vergelijking van'},
+  audits_word:{fr:'audits',en:'audits',de:'Audits',es:'auditorías',it:'audit',pt:'auditorias',nl:'audits'},
+  criterion:{fr:'Critère',en:'Criterion',de:'Kriterium',es:'Criterio',it:'Criterio',pt:'Critério',nl:'Criterium'},
+  select_placeholder:{fr:'— Sélectionner —',en:'— Select —',de:'— Auswählen —',es:'— Seleccionar —',it:'— Selezionare —',it:'— Selezionare —',pt:'— Selecionar —',nl:'— Selecteren —'},
+  pdf_lang:{fr:'Langue du rapport',en:'Report language',de:'Berichtssprache',es:'Idioma del informe',it:'Lingua del rapporto',pt:'Idioma do relatório',nl:'Rapporttaal'},
+  yes_coworking:{fr:'Oui — espace coworking',en:'Yes — coworking space',de:'Ja — Coworking',es:'Sí — coworking',it:'Sì — coworking',pt:'Sim — coworking',nl:'Ja — coworking'},
+  no_coworking:{fr:'Non — pas de coworking',en:'No — no coworking',de:'Nein — kein Coworking',es:'No — sin coworking',it:'No — no coworking',pt:'Não — sem coworking',nl:'Nee — geen coworking'},
+  // Section names
+  sec_localisation:{fr:'Localisation',en:'Location',de:'Standort',es:'Ubicación',it:'Localizzazione',pt:'Localização',nl:'Locatie'},
+  sec_foncier:{fr:'Foncier',en:'Land & Planning',de:'Grundstück',es:'Suelo',it:'Fondiario',pt:'Fundiário',nl:'Grond'},
+  sec_batiment:{fr:'Bâtiment',en:'Building',de:'Gebäude',es:'Edificio',it:'Edificio',pt:'Edifício',nl:'Gebouw'},
+  sec_energie:{fr:'Énergie',en:'Energy',de:'Energie',es:'Energía',it:'Energia',pt:'Energia',nl:'Energie'},
+  sec_reseaux:{fr:'Réseaux',en:'Networks',de:'Netzwerke',es:'Redes',it:'Reti',pt:'Redes',nl:'Netwerken'},
+  sec_securite:{fr:'Sécurité',en:'Security',de:'Sicherheit',es:'Seguridad',it:'Sicurezza',pt:'Segurança',nl:'Beveiliging'},
+  sec_viequotidienne:{fr:'Vie quotidienne',en:'Daily life',de:'Alltag',es:'Vida diaria',it:'Vita quotidiana',pt:'Vida diária',nl:'Dagelijks leven'},
+  sec_coworking:{fr:'Coworking',en:'Coworking',de:'Coworking',es:'Coworking',it:'Coworking',pt:'Coworking',nl:'Coworking'},
+  sec_juridique:{fr:'Juridique',en:'Legal & Finance',de:'Recht & Finanzen',es:'Jurídico',it:'Giuridico',pt:'Jurídico',nl:'Juridisch'},
+  sec_activite:{fr:'Activité',en:'Activity',de:'Aktivität',es:'Actividad',it:'Attività',pt:'Atividade',nl:'Activiteit'},
+  projet:{fr:'Projet',en:'Project',de:'Projekt',es:'Proyecto',it:'Progetto',pt:'Projeto',nl:'Project'},
+};
+
+// Field label translations (fr is the source, used as key)
+var FL={
+// Localisation
+'Pays':{en:'Country',de:'Land',es:'País',it:'Paese',pt:'País',nl:'Land'},
+'Adresse / commune':{en:'Address / city',de:'Adresse / Gemeinde',es:'Dirección / municipio',it:'Indirizzo / comune',pt:'Morada / concelho',nl:'Adres / gemeente'},
+'Zone PLU':{en:'Zoning plan',de:'Bebauungsplan',es:'Plan urbanístico',it:'Piano urbanistico',pt:'Plano urbanístico',nl:'Bestemmingsplan'},
+'Zone tendue':{en:'Market tension',de:'Marktlage',es:'Zona tensa',it:'Zona tesa',pt:'Zona tensa',nl:'Marktkrapte'},
+'Autoroute (min)':{en:'Highway (min)',de:'Autobahn (min)',es:'Autopista (min)',it:'Autostrada (min)',pt:'Autoestrada (min)',nl:'Snelweg (min)'},
+'Stationnement':{en:'Parking',de:'Parken',es:'Aparcamiento',it:'Parcheggio',pt:'Estacionamento',nl:'Parkeren'},
+'Transports':{en:'Public transport',de:'Nahverkehr',es:'Transporte público',it:'Trasporto pubblico',pt:'Transportes',nl:'Openbaar vervoer'},
+"Visibilité & image":{en:'Visibility & image',de:'Sichtbarkeit & Image',es:'Visibilidad e imagen',it:'Visibilità e immagine',pt:'Visibilidade e imagem',nl:'Zichtbaarheid & imago'},
+"Tension du marché de l'emploi local":{en:'Local job market tension',de:'Arbeitsmarktlage',es:'Tensión del mercado laboral',it:'Tensione mercato lavoro',pt:'Tensão do mercado de emprego',nl:'Arbeidsmarktspanning'},
+'Profils disponibles dominants':{en:'Dominant available profiles',de:'Verfügbare Profile',es:'Perfiles disponibles',it:'Profili disponibili',pt:'Perfis disponíveis',nl:'Beschikbare profielen'},
+'Universités / grandes écoles à proximité':{en:'Universities nearby',de:'Universitäten in der Nähe',es:'Universidades cercanas',it:'Università vicine',pt:'Universidades próximas',nl:'Universiteiten nabij'},
+'Concurrence employeurs sur le bassin':{en:'Employer competition',de:'Arbeitgeberwettbewerb',es:'Competencia de empleadores',it:'Concorrenza datori lavoro',pt:'Concorrência de empregadores',nl:'Concurrentie werkgevers'},
+// Foncier
+'Surface terrain (m²)':{en:'Land area (m²)',de:'Grundfläche (m²)',es:'Superficie terreno (m²)',it:'Superficie terreno (m²)',pt:'Área terreno (m²)',nl:'Terrein (m²)'},
+'Surface plancher (m²)':{en:'Floor area (m²)',de:'Geschossfläche (m²)',es:'Superficie construida (m²)',it:'Superficie piano (m²)',pt:'Área útil (m²)',nl:'Vloeroppervlak (m²)'},
+'Divisibilité':{en:'Divisibility',de:'Teilbarkeit',es:'Divisibilidad',it:'Divisibilità',pt:'Divisibilidade',nl:'Deelbaarheid'},
+'Permis de construire':{en:'Building permit',de:'Baugenehmigung',es:'Licencia de obras',it:'Permesso di costruire',pt:'Licença de construção',nl:'Bouwvergunning'},
+'Risques naturels':{en:'Natural risks',de:'Naturrisiken',es:'Riesgos naturales',it:'Rischi naturali',pt:'Riscos naturais',nl:'Natuurlijke risicos'},
+'Pollution sols':{en:'Soil pollution',de:'Bodenverschmutzung',es:'Contaminación suelo',it:'Inquinamento suolo',pt:'Poluição solo',nl:'Bodemvervuiling'},
+'Nuisances sonores':{en:'Noise pollution',de:'Lärmbelastung',es:'Contaminación acústica',it:'Inquinamento acustico',pt:'Poluição sonora',nl:'Geluidsoverlast'},
+"Qualité de l'air (Atmo)":{en:'Air quality',de:'Luftqualität',es:'Calidad del aire',it:"Qualità dell'aria",pt:'Qualidade do ar',nl:'Luchtkwaliteit'},
+'Espaces verts à proximité':{en:'Green spaces nearby',de:'Grünflächen',es:'Espacios verdes',it:'Spazi verdi',pt:'Espaços verdes',nl:'Groenvoorzieningen'},
+'Îlot de chaleur urbain':{en:'Urban heat island',de:'Städtische Wärmeinsel',es:'Isla de calor',it:'Isola di calore',pt:'Ilha de calor',nl:'Stedelijk warmte-eiland'},
+// Bâtiment
+'Année':{en:'Year',de:'Baujahr',es:'Año',it:'Anno',pt:'Ano',nl:'Bouwjaar'},
+'Structure':{en:'Structure',de:'Konstruktion',es:'Estructura',it:'Struttura',pt:'Estrutura',nl:'Constructie'},
+"Nombre d'étages":{en:'Number of floors',de:'Stockwerke',es:'Número de plantas',it:'Numero di piani',pt:'Número de pisos',nl:'Aantal verdiepingen'},
+'Surface par étage (m²)':{en:'Area per floor (m²)',de:'Fläche pro Etage (m²)',es:'Superficie por planta (m²)',it:'Superficie per piano (m²)',pt:'Área por piso (m²)',nl:'Oppervlakte per verdieping (m²)'},
+'Hauteur libre (m)':{en:'Clear height (m)',de:'Lichte Höhe (m)',es:'Altura libre (m)',it:'Altezza libera (m)',pt:'Altura livre (m)',nl:'Vrije hoogte (m)'},
+'PMR':{en:'Disabled access',de:'Barrierefreiheit',es:'Accesibilidad PMR',it:'Accessibilità disabili',pt:'Acessibilidade PRM',nl:'Toegankelijkheid'},
+'Monte-charge':{en:'Goods lift',de:'Lastenaufzug',es:'Montacargas',it:'Montacarichi',pt:'Monta-cargas',nl:'Goederenlift'},
+'Amiante/plomb':{en:'Asbestos/lead',de:'Asbest/Blei',es:'Amianto/plomo',it:'Amianto/piombo',pt:'Amianto/chumbo',nl:'Asbest/lood'},
+'État général':{en:'General condition',de:'Allgemeinzustand',es:'Estado general',it:'Stato generale',pt:'Estado geral',nl:'Algemene staat'},
+'Plancher technique':{en:'Raised floor',de:'Doppelboden',es:'Suelo técnico',it:'Pavimento sopraelevato',pt:'Piso técnico',nl:'Verhoogde vloer'},
+'Charge sol (kg/m²)':{en:'Floor load (kg/m²)',de:'Bodenbelastung (kg/m²)',es:'Carga suelo (kg/m²)',it:'Carico pavimento (kg/m²)',pt:'Carga solo (kg/m²)',nl:'Vloerbelasting (kg/m²)'},
+'Travaux estimés':{en:'Estimated works',de:'Geschätzte Arbeiten',es:'Obras estimadas',it:'Lavori stimati',pt:'Obras estimadas',nl:'Geschatte werkzaamheden'},
+'Immeuble de Grande Hauteur (IGH)':{en:'High-rise building',de:'Hochhaus',es:'Edificio de gran altura',it:'Edificio alto',pt:'Edifício de grande altura',nl:'Hoogbouw'},
+'Contraintes IGH (détail)':{en:'High-rise constraints (detail)',de:'Hochhaus-Auflagen (Detail)',es:'Restricciones edificio alto',it:'Vincoli edificio alto',pt:'Restrições edifício alto',nl:'Hoogbouw beperkingen'},
+'Multi-tenant':{en:'Multi-tenant',de:'Mehrmieterobjekt',es:'Multi-inquilino',it:'Multi-tenant',pt:'Multi-inquilino',nl:'Multi-tenant'},
+'Client/concurrent à proximité':{en:'Client/competitor nearby',de:'Kunde/Wettbewerber in der Nähe',es:'Cliente/competidor cercano',it:'Cliente/concorrente vicino',pt:'Cliente/concorrente próximo',nl:'Klant/concurrent nabij'},
+// Conformité
+'Classement ERP':{en:'ERP classification',de:'ERP-Klassifizierung',es:'Clasificación ERP',it:'Classificazione ERP',pt:'Classificação ERP',nl:'ERP-classificatie'},
+'Type ERP':{en:'ERP type',de:'ERP-Typ',es:'Tipo ERP',it:'Tipo ERP',pt:'Tipo ERP',nl:'ERP-type'},
+'Commission de sécurité':{en:'Safety commission',de:'Sicherheitskommission',es:'Comisión de seguridad',it:'Commissione sicurezza',pt:'Comissão de segurança',nl:'Veiligheidscommissie'},
+'Décret tertiaire':{en:'Tertiary decree',de:'Tertiärerlass',es:'Decreto terciario',it:'Decreto terziario',pt:'Decreto terciário',nl:'Tertiair decreet'},
+// Énergie
+'DPE':{en:'EPC',de:'Energieausweis',es:'CEE',it:'APE',pt:'CE',nl:'Energielabel'},
+'Puissance (kVA)':{en:'Power (kVA)',de:'Leistung (kVA)',es:'Potencia (kVA)',it:'Potenza (kVA)',pt:'Potência (kVA)',nl:'Vermogen (kVA)'},
+'Gaz':{en:'Gas',de:'Gas',es:'Gas',it:'Gas',pt:'Gás',nl:'Gas'},
+'Chauffage et Climatisation':{en:'Heating & Air conditioning',de:'Heizung & Klimaanlage',es:'Calefacción y climatización',it:'Riscaldamento e climatizzazione',pt:'Aquecimento e climatização',nl:'Verwarming & airconditioning'},
+'Certifications':{en:'Certifications',de:'Zertifizierungen',es:'Certificaciones',it:'Certificazioni',pt:'Certificações',nl:'Certificeringen'},
+'GTB présente':{en:'BMS present',de:'GLT vorhanden',es:'BMS presente',it:'BMS presente',pt:'BMS presente',nl:'GBS aanwezig'},
+'Protocole de communication':{en:'Communication protocol',de:'Kommunikationsprotokoll',es:'Protocolo comunicación',it:'Protocollo comunicazione',pt:'Protocolo comunicação',nl:'Communicatieprotocol'},
+'Périmètre supervisé':{en:'Supervised scope',de:'Überwachter Bereich',es:'Perímetro supervisado',it:'Perimetro supervisionato',pt:'Perímetro supervisionado',nl:'Bewaakt bereik'},
+'Contrat de maintenance GTB':{en:'BMS maintenance contract',de:'GLT-Wartungsvertrag',es:'Contrato mantenimiento BMS',it:'Contratto manutenzione BMS',pt:'Contrato manutenção BMS',nl:'GBS-onderhoudscontract'},
+"Type d'éclairage":{en:'Lighting type',de:'Beleuchtungsart',es:'Tipo iluminación',it:'Tipo illuminazione',pt:'Tipo iluminação',nl:'Type verlichting'},
+"Mode d'allumage":{en:'Switching mode',de:'Schaltmodus',es:'Modo encendido',it:'Modalità accensione',pt:'Modo de iluminação',nl:'Schakelmodus'},
+'Gradation / dimming':{en:'Dimming',de:'Dimmung',es:'Regulación',it:'Dimmerazione',pt:'Regulação',nl:'Dimmen'},
+'État général éclairage':{en:'Lighting condition',de:'Beleuchtungszustand',es:'Estado iluminación',it:'Stato illuminazione',pt:'Estado iluminação',nl:'Staat verlichting'},
+// Réseaux
+'Câblage existant':{en:'Existing cabling',de:'Vorhandene Verkabelung',es:'Cableado existente',it:'Cablaggio esistente',pt:'Cablagem existente',nl:'Bestaande bekabeling'},
+'Catégorie':{en:'Category',de:'Kategorie',es:'Categoría',it:'Categoria',pt:'Categoria',nl:'Categorie'},
+'Opérateurs fibre':{en:'Fiber operators',de:'Glasfaser-Anbieter',es:'Operadores fibra',it:'Operatori fibra',pt:'Operadores fibra',nl:'Glasvezel-operators'},
+'Fibre':{en:'Fiber',de:'Glasfaser',es:'Fibra',it:'Fibra',pt:'Fibra',nl:'Glasvezel'},
+'Réseau 5G présent':{en:'5G network',de:'5G-Netz',es:'Red 5G',it:'Rete 5G',pt:'Rede 5G',nl:'5G-netwerk'},
+'Réseau 4G présent':{en:'4G network',de:'4G-Netz',es:'Red 4G',it:'Rete 4G',pt:'Rede 4G',nl:'4G-netwerk'},
+'Opérateurs':{en:'Operators',de:'Anbieter',es:'Operadores',it:'Operatori',pt:'Operadores',nl:'Operators'},
+// Sécurité
+'Sprinkler':{en:'Sprinkler',de:'Sprinkler',es:'Rociadores',it:'Sprinkler',pt:'Sprinkler',nl:'Sprinkler'},
+'Désenfumage':{en:'Smoke extraction',de:'Entrauchung',es:'Desenfumaje',it:'Evacuazione fumi',pt:'Desenfumagem',nl:'Rookafvoer'},
+'Détection incendie':{en:'Fire detection',de:'Brandmeldeanlage',es:'Detección incendios',it:'Rilevamento incendio',pt:'Deteção incêndio',nl:'Branddetectie'},
+'Extincteurs':{en:'Fire extinguishers',de:'Feuerlöscher',es:'Extintores',it:'Estintori',pt:'Extintores',nl:'Brandblussers'},
+"Contrôle d'accès":{en:'Access control',de:'Zugangskontrolle',es:'Control de acceso',it:'Controllo accessi',pt:'Controlo de acesso',nl:'Toegangscontrole'},
+'Vidéosurveillance':{en:'CCTV',de:'Videoüberwachung',es:'Videovigilancia',it:'Videosorveglianza',pt:'Videovigilância',nl:'Camerabewaking'},
+'Gardiennage':{en:'Security guard',de:'Sicherheitsdienst',es:'Vigilancia',it:'Vigilanza',pt:'Vigilância',nl:'Bewaking'},
+'Alarme intrusion':{en:'Intruder alarm',de:'Einbruchmeldeanlage',es:'Alarma intrusión',it:'Allarme intrusione',pt:'Alarme intrusão',nl:'Inbraakalarm'},
+// Vie quotidienne
+'Nombre de places':{en:'Number of spaces',de:'Stellplätze',es:'Número de plazas',it:'Numero posti',pt:'Número de lugares',nl:'Aantal plaatsen'},
+'Sécurisé':{en:'Secured',de:'Gesichert',es:'Asegurado',it:'Protetto',pt:'Seguro',nl:'Beveiligd'},
+'Bornes de recharge VE':{en:'EV charging',de:'E-Ladestationen',es:'Carga VE',it:'Ricarica VE',pt:'Carregamento VE',nl:'EV-laden'},
+'Places publiques disponibles à proximité':{en:'Public spaces nearby',de:'Öffentliche Plätze in der Nähe',es:'Plazas públicas cercanas',it:'Posti pubblici vicini',pt:'Lugares públicos próximos',nl:'Openbare plaatsen nabij'},
+"Restaurant d'entreprise":{en:'Company restaurant',de:'Betriebsrestaurant',es:'Restaurante de empresa',it:'Ristorante aziendale',pt:'Restaurante empresa',nl:'Bedrijfsrestaurant'},
+'Distance du restaurant (m)':{en:'Restaurant distance (m)',de:'Entfernung Restaurant (m)',es:'Distancia restaurante (m)',it:'Distanza ristorante (m)',pt:'Distância restaurante (m)',nl:'Afstand restaurant (m)'},
+'Frigos connectés':{en:'Smart fridges',de:'Smarte Kühlschränke',es:'Neveras conectadas',it:'Frigo smart',pt:'Frigoríficos conectados',nl:'Slimme koelkasten'},
+'Food truck':{en:'Food truck',de:'Food Truck',es:'Food truck',it:'Food truck',pt:'Food truck',nl:'Foodtruck'},
+'Espace frigo + micro-ondes':{en:'Fridge + microwave area',de:'Kühlschrank + Mikrowelle',es:'Zona nevera + microondas',it:'Zona frigo + microonde',pt:'Zona frigorífico + micro-ondas',nl:'Koelkast + magnetron'},
+'Offre de restauration à proximité (< 500 m)':{en:'Dining options nearby (< 500 m)',de:'Gastronomie in der Nähe (< 500 m)',es:'Restauración cercana (< 500 m)',it:'Ristorazione nelle vicinanze (< 500 m)',pt:'Restauração próxima (< 500 m)',nl:'Horeca nabij (< 500 m)'},
+'Pistes cyclables à proximité':{en:'Cycle paths nearby',de:'Radwege in der Nähe',es:'Carriles bici cercanos',it:'Piste ciclabili vicine',pt:'Ciclovias próximas',nl:'Fietspaden nabij'},
+'Vestiaires / casiers cyclistes':{en:'Cyclist changing rooms',de:'Umkleiden / Schließfächer',es:'Vestuarios ciclistas',it:'Spogliatoi ciclisti',pt:'Vestiários ciclistas',nl:'Fietskleedkamers'},
+'Autopartage / covoiturage':{en:'Car sharing / pooling',de:'Carsharing / Fahrgemeinschaft',es:'Coche compartido',it:'Car sharing',pt:'Partilha de carro',nl:'Autodelen / carpoolen'},
+'Espace détente intérieur':{en:'Indoor break area',de:'Ruhebereich innen',es:'Zona descanso interior',it:'Area relax interna',pt:'Zona de descanso interior',nl:'Binnenrustruimte'},
+'Espace détente extérieur':{en:'Outdoor break area',de:'Ruhebereich außen',es:'Zona descanso exterior',it:'Area relax esterna',pt:'Zona de descanso exterior',nl:'Buitenrustruimte'},
+'Douches':{en:'Showers',de:'Duschen',es:'Duchas',it:'Docce',pt:'Duches',nl:'Douches'},
+'Salle de sport / fitness':{en:'Gym / fitness',de:'Fitnessraum',es:'Gimnasio',it:'Palestra',pt:'Ginásio',nl:'Fitnessruimte'},
+'Conciergerie':{en:'Concierge service',de:'Concierge',es:'Conserjería',it:'Concierge',pt:'Concierge',nl:'Conciërge'},
+// Juridique
+'Statut / type de bail':{en:'Lease type',de:'Mietvertragsart',es:'Tipo de arrendamiento',it:'Tipo di locazione',pt:'Tipo de arrendamento',nl:'Huurtype'},
+'Durée':{en:'Duration',de:'Laufzeit',es:'Duración',it:'Durata',pt:'Duração',nl:'Duur'},
+'Franchise':{en:'Rent-free period',de:'Mietfrei',es:'Carencia',it:'Franchigia',pt:'Carência',nl:'Huurvrij'},
+'Valeur vénale (€)':{en:'Market value (€)',de:'Verkehrswert (€)',es:'Valor de mercado (€)',it:'Valore di mercato (€)',pt:'Valor de mercado (€)',nl:'Marktwaarde (€)'},
+'Type de bailleur':{en:'Landlord type',de:'Vermietertyp',es:'Tipo de arrendador',it:'Tipo locatore',pt:'Tipo proprietário',nl:'Type verhuurder'},
+'Property Manager':{en:'Property Manager',de:'Property Manager',es:'Property Manager',it:'Property Manager',pt:'Property Manager',nl:'Property Manager'},
+'Nom du Property Manager':{en:'PM name',de:'PM-Name',es:'Nombre PM',it:'Nome PM',pt:'Nome PM',nl:'PM-naam'},
+'Loyer (€/m²/an)':{en:'Rent (€/m²/yr)',de:'Miete (€/m²/J.)',es:'Alquiler (€/m²/año)',it:'Affitto (€/m²/anno)',pt:'Renda (€/m²/ano)',nl:'Huur (€/m²/jr)'},
+'Charges copro':{en:'Service charges',de:'Nebenkosten',es:'Gastos comunidad',it:'Spese condominiali',pt:'Encargos condomínio',nl:'Servicekosten'},
+'Taxe foncière (€/an)':{en:'Property tax (€/yr)',de:'Grundsteuer (€/J.)',es:'IBI (€/año)',it:'IMU (€/anno)',pt:'IMI (€/ano)',nl:'OZB (€/jr)'},
+'Charges récupérables (€/m²/an)':{en:'Recoverable charges',de:'Umlagefähige Kosten',es:'Gastos recuperables',it:'Oneri recuperabili',pt:'Encargos recuperáveis',nl:'Doorbelaste kosten'},
+'Charges non récupérables (€/m²/an)':{en:'Non-recoverable charges',de:'Nicht umlagefähige Kosten',es:'Gastos no recuperables',it:'Oneri non recuperabili',pt:'Encargos não recuperáveis',nl:'Niet-doorbelaste kosten'},
+'TEOM (€/an)':{en:'Waste tax (€/yr)',de:'Abfallgebühr (€/J.)',es:'Tasa residuos (€/año)',it:'Tassa rifiuti (€/anno)',pt:'Taxa resíduos (€/ano)',nl:'Afvalstoffenheffing (€/jr)'},
+'CFE estimée (€/an)':{en:'Business tax (€/yr)',de:'Gewerbesteuer (€/J.)',es:'IAE (€/año)',it:'IRAP (€/anno)',pt:'Derrama (€/ano)',nl:'BIZ (€/jr)'},
+'Coût aménagement estimé (€/m²)':{en:'Fit-out cost (€/m²)',de:'Ausbaukosten (€/m²)',es:'Coste acondicionamiento (€/m²)',it:'Costo allestimento (€/m²)',pt:'Custo adequação (€/m²)',nl:'Inrichtingskosten (€/m²)'},
+'Budget travaux estimé (€)':{en:'Works budget (€)',de:'Baubudget (€)',es:'Presupuesto obras (€)',it:'Budget lavori (€)',pt:'Orçamento obras (€)',nl:'Bouwbudget (€)'},
+// Activité
+'Capacité (pers.)':{en:'Capacity (pers.)',de:'Kapazität (Pers.)',es:'Capacidad (pers.)',it:'Capacità (pers.)',pt:'Capacidade (pers.)',nl:'Capaciteit (pers.)'},
+'Voisinage':{en:'Neighbourhood',de:'Umgebung',es:'Vecindario',it:'Vicinato',pt:'Vizinhança',nl:'Omgeving'},
+'Nuisances':{en:'Nuisances',de:'Belästigungen',es:'Molestias',it:'Disturbi',pt:'Perturbações',nl:'Overlast'},
+'Extension':{en:'Extension potential',de:'Erweiterungspotenzial',es:'Potencial extensión',it:'Potenziale estensione',pt:'Potencial extensão',nl:'Uitbreidingspotentieel'},
+'Score global':{en:'Overall score',de:'Gesamtbewertung',es:'Puntuación global',it:'Punteggio globale',pt:'Pontuação global',nl:'Totaalscore'},
+'Commentaires':{en:'Comments',de:'Kommentare',es:'Comentarios',it:'Commenti',pt:'Comentários',nl:'Opmerkingen'},
+'Dépendance mono-accès':{en:'Single-access dependency',de:'Einzelzugangsabhängigkeit',es:'Dependencia acceso único',it:'Dipendenza mono-accesso',pt:'Dependência mono-acesso',nl:'Eenzijdige toegang'},
+'Risques climatiques futurs (2050)':{en:'Future climate risks (2050)',de:'Klimarisiken 2050',es:'Riesgos climáticos 2050',it:'Rischi climatici 2050',pt:'Riscos climáticos 2050',nl:'Klimaatrisico 2050'},
+'PCA / PRA existant sur le site':{en:'BCP / DRP on site',de:'BCP / DRP vor Ort',es:'PCA / PRA en el sitio',it:'BCP / DRP sul sito',pt:'PCN / PRD no local',nl:'BCP / DRP aanwezig'},
+'Zone de sécurité prioritaire (ZSP)':{en:'Priority security zone',de:'Sicherheitszone',es:'Zona seguridad prioritaria',it:'Zona sicurezza prioritaria',pt:'Zona segurança prioritária',nl:'Prioritaire veiligheidszone'},
+// Card titles
+'Localisation':{en:'Location',de:'Standort',es:'Ubicación',it:'Localizzazione',pt:'Localização',nl:'Locatie'},
+'Accessibilité':{en:'Accessibility',de:'Erreichbarkeit',es:'Accesibilidad',it:'Accessibilità',pt:'Acessibilidade',nl:'Bereikbaarheid'},
+"Bassin d'emploi & attractivité":{en:'Employment & attractiveness',de:'Arbeitsmarkt & Attraktivität',es:'Empleo y atractivo',it:'Occupazione e attrattività',pt:'Emprego e atratividade',nl:'Arbeidsmarkt & aantrekkelijkheid'},
+'Surfaces':{en:'Areas',de:'Flächen',es:'Superficies',it:'Superfici',pt:'Superfícies',nl:'Oppervlakten'},
+'Risques':{en:'Risks',de:'Risiken',es:'Riesgos',it:'Rischi',pt:'Riscos',nl:'Risicos'},
+'Qualité environnementale du site':{en:'Site environmental quality',de:'Umweltqualität des Standorts',es:'Calidad ambiental del sitio',it:'Qualità ambientale del sito',pt:'Qualidade ambiental do local',nl:'Milieukwaliteit van de locatie'},
+'Infrastructure':{en:'Infrastructure',de:'Infrastruktur',es:'Infraestructura',it:'Infrastruttura',pt:'Infraestrutura',nl:'Infrastructuur'},
+'IGH & Occupation':{en:'High-rise & Occupancy',de:'Hochhaus & Belegung',es:'Gran altura & Ocupación',it:'Edificio alto & Occupazione',pt:'Grande altura & Ocupação',nl:'Hoogbouw & Bezetting'},
+'Conformité réglementaire':{en:'Regulatory compliance',de:'Regulatorische Konformität',es:'Conformidad regulatoria',it:'Conformità normativa',pt:'Conformidade regulatória',nl:'Regelgevingsconformiteit'},
+'Performance énergétique':{en:'Energy performance',de:'Energieleistung',es:'Rendimiento energético',it:'Prestazione energetica',pt:'Desempenho energético',nl:'Energieprestatie'},
+'Éclairage':{en:'Lighting',de:'Beleuchtung',es:'Iluminación',it:'Illuminazione',pt:'Iluminação',nl:'Verlichting'},
+'Réseau':{en:'Network',de:'Netzwerk',es:'Red',it:'Rete',pt:'Rede',nl:'Netwerk'},
+'Sécurité incendie':{en:'Fire safety',de:'Brandschutz',es:'Seguridad contra incendios',it:'Sicurezza antincendio',pt:'Segurança contra incêndios',nl:'Brandveiligheid'},
+"Sûreté & contrôle d'accès":{en:'Security & access control',de:'Sicherheit & Zugangskontrolle',es:'Seguridad y control de acceso',it:'Sicurezza e controllo accessi',pt:'Segurança e controlo de acesso',nl:'Beveiliging & toegangscontrole'},
+'Restauration':{en:'Dining',de:'Gastronomie',es:'Restauración',it:'Ristorazione',pt:'Restauração',nl:'Horeca'},
+'Confort & bien-être':{en:'Comfort & wellness',de:'Komfort & Wohlbefinden',es:'Confort y bienestar',it:'Comfort e benessere',pt:'Conforto e bem-estar',nl:'Comfort & welzijn'},
+'Abris vélos & mobilité douce':{en:'Bike storage & soft mobility',de:'Fahrradstellplätze & sanfte Mobilität',es:'Aparcabicis y movilidad sostenible',it:'Parcheggio bici & mobilità dolce',pt:'Estacionamento bicicletas & mobilidade suave',nl:'Fietsenstalling & zachte mobiliteit'},
+'Bail':{en:'Lease',de:'Mietvertrag',es:'Arrendamiento',it:'Locazione',pt:'Arrendamento',nl:'Huurovereenkomst'},
+'Bailleur & gestion':{en:'Landlord & management',de:'Vermieter & Verwaltung',es:'Arrendador y gestión',it:'Locatore e gestione',pt:'Proprietário e gestão',nl:'Verhuurder & beheer'},
+'Finances':{en:'Finances',de:'Finanzen',es:'Finanzas',it:'Finanze',pt:'Finanças',nl:'Financiën'},
+"Coûts d'occupation (TCO)":{en:'Total cost of occupancy',de:'Gesamtbetriebskosten',es:'Coste total de ocupación',it:'Costo totale di occupazione',pt:'Custo total de ocupação',nl:'Totale bezettingskosten'},
+'Capacité':{en:'Capacity',de:'Kapazität',es:'Capacidad',it:'Capacità',pt:'Capacidade',nl:'Capaciteit'},
+'Risques business':{en:'Business risks',de:'Geschäftsrisiken',es:'Riesgos de negocio',it:'Rischi business',pt:'Riscos de negócio',nl:'Bedrijfsrisicos'},
+'Espaces':{en:'Spaces',de:'Räume',es:'Espacios',it:'Spazi',pt:'Espaços',nl:'Ruimten'},
+'Accès':{en:'Access',de:'Zugang',es:'Acceso',it:'Accesso',pt:'Acesso',nl:'Toegang'},
+'Nom du projet':{en:'Project name',de:'Projektname',es:'Nombre del proyecto',it:'Nome del progetto',pt:'Nome do projeto',nl:'Projectnaam'},
+"Type(s) d'activité":{en:'Activity type(s)',de:'Aktivitätsart(en)',es:'Tipo(s) de actividad',it:'Tipo/i di attività',pt:'Tipo(s) de atividade',nl:'Type activiteit(en)'},
+'Support':{en:'Support type',de:'Unterstützungsart',es:'Tipo de soporte',it:'Tipo di supporto',pt:'Tipo de suporte',nl:'Type ondersteuning'},
+'Coworking concerné ?':{en:'Coworking applicable?',de:'Coworking betroffen?',es:'¿Coworking aplicable?',it:'Coworking applicabile?',pt:'Coworking aplicável?',nl:'Coworking van toepassing?'},
+'Projet':{en:'Project',de:'Projekt',es:'Proyecto',it:'Progetto',pt:'Projeto',nl:'Project'},
+'GTB':{en:'BMS — Building Management System',de:'GLT — Gebäudeleittechnik',es:'BMS — Gestión técnica',it:'BMS — Building Management',pt:'BMS — Gestão técnica',nl:'GBS — Gebouwbeheersysteem'},
+'Couverture mobile':{en:'Mobile coverage',de:'Mobilfunkabdeckung',es:'Cobertura móvil',it:'Copertura mobile',pt:'Cobertura móvel',nl:'Mobiele dekking'},
+'Parking public':{en:'Public parking',de:'Öffentliches Parken',es:'Aparcamiento público',it:'Parcheggio pubblico',pt:'Estacionamento público',nl:'Openbaar parkeren'},
+'Risques business':{en:'Business risks',de:'Geschäftsrisiken',es:'Riesgos de negocio',it:'Rischi business',pt:'Riscos de negócio',nl:'Bedrijfsrisicos'},
+'Score':{en:'Score',de:'Bewertung',es:'Puntuación',it:'Punteggio',pt:'Pontuação',nl:'Score'},
+"Cadre réglementaire":{en:'Regulatory framework',de:'Rechtsrahmen',es:'Marco regulatorio',it:'Quadro normativo',pt:'Quadro regulamentar',nl:'Regelgevingskader'},
+'Conformité PCI DSS':{en:'PCI DSS Compliance',de:'PCI DSS Konformität',es:'Conformidad PCI DSS',it:'Conformità PCI DSS',pt:'Conformidade PCI DSS',nl:'PCI DSS Compliance'},
+'Exigences clés du site':{en:'Key site requirements',de:'Wichtige Standortanforderungen',es:'Requisitos clave del sitio',it:'Requisiti chiave del sito',pt:'Requisitos chave do local',nl:'Belangrijke locatie-eisen'},
+'Présence de PNG (passage unipersonnel)':{en:'Mantrap / security airlock (PNG)',de:'Vereinzelungsanlage (PNG)',es:'Esclusa de seguridad (PNG)',it:'Bussola di sicurezza (PNG)',pt:'Eclusa de segurança (PNG)',nl:'Personeelssluis (PNG)'},
+'Secure Room / salle sécurisée':{en:'Secure Room',de:'Sicherheitsraum',es:'Sala segura',it:'Sala sicura',pt:'Sala segura',nl:'Beveiligde ruimte'},
+'Conformité PCI DSS':{en:'PCI DSS compliance',de:'PCI DSS-Status',es:'Conformidad PCI DSS',it:'Conformità PCI DSS',pt:'Conformidade PCI DSS',nl:'PCI DSS-status'},
+'Niveau PCI DSS':{en:'PCI DSS level',de:'PCI DSS-Stufe',es:'Nivel PCI DSS',it:'Livello PCI DSS',pt:'Nível PCI DSS',nl:'PCI DSS-niveau'},
+'Segmentation réseau':{en:'Network segmentation',de:'Netzwerksegmentierung',es:'Segmentación de red',it:'Segmentazione rete',pt:'Segmentação de rede',nl:'Netwerksegmentatie'},
+"Contrôle d'accès physique zone CDE":{en:'Physical access control CDE',de:'Physische Zugangskontrolle CDE',es:'Control acceso físico CDE',it:'Controllo accesso fisico CDE',pt:'Controlo acesso físico CDE',nl:'Fysieke toegangscontrole CDE'},
+'Vidéosurveillance zone CDE':{en:'CCTV CDE zone',de:'Videoüberwachung CDE',es:'Videovigilancia zona CDE',it:'Videosorveglianza zona CDE',pt:'Videovigilância zona CDE',nl:'Camerabewaking CDE'},
+'Logs & traçabilité':{en:'Logs & traceability',de:'Logs & Rückverfolgbarkeit',es:'Logs y trazabilidad',it:'Log e tracciabilità',pt:'Logs e rastreabilidade',nl:'Logs & traceerbaarheid'},
+'Dernier audit / scan ASV':{en:'Last audit / ASV scan',de:'Letztes Audit / ASV-Scan',es:'Última auditoría / escaneo ASV',it:'Ultimo audit / scan ASV',pt:'Última auditoria / scan ASV',nl:'Laatste audit / ASV-scan'},
+'Commentaires PCI DSS':{en:'PCI DSS comments',de:'PCI DSS Kommentare',es:'Comentarios PCI DSS',it:'Commenti PCI DSS',pt:'Comentários PCI DSS',nl:'PCI DSS opmerkingen'},
+"Redondance / secours électrique":{en:'Electrical redundancy',de:'Elektrische Redundanz',es:'Redundancia eléctrica',it:'Ridondanza elettrica',pt:'Redundância elétrica',nl:'Elektrische redundantie'},
+"Qualité du signal par opérateur (dans le bâtiment) :":{en:'Signal quality per operator (indoor):',de:'Signalqualität pro Anbieter (im Gebäude):',es:'Calidad señal por operador (interior):',it:'Qualità segnale per operatore (interno):',pt:'Qualidade sinal por operador (interior):',nl:'Signaalkwaliteit per operator (binnen):'},
+};
+
+function tl(label){if(currentLang==='fr')return label;var e=FL[label];return e&&e[currentLang]?e[currentLang]:label;}
+
+var currentLang = 'fr';
+function t(key) { var entry = I18N[key]; if (!entry) return key; return entry[currentLang] || entry['fr'] || key; }
+function tSec(id) { return t('sec_' + id); }
+
+function getCountryData(ans){
+  if(!ans||!ans.pays)return null;
+  var found=null;Object.keys(COUNTRY_DATA).forEach(function(k){if(COUNTRY_DATA[k].label===ans.pays)found=COUNTRY_DATA[k];});
+  return found;
+}
+function getCountryCode(ans){
+  if(!ans||!ans.pays)return null;
+  var code=null;Object.keys(COUNTRY_DATA).forEach(function(k){if(COUNTRY_DATA[k].label===ans.pays)code=k;});
+  return code;
+}
+
+var STORAGE_KEY = 'facilium_audits';
+function loadAudits() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) { return []; } }
+function saveAuditToStorage(audit) {
+  var all = loadAudits(); var idx = all.findIndex(function(a){return a.id===audit.id;});
+  if (idx >= 0) all[idx] = audit; else all.push(audit);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+}
+function deleteAuditFromStorage(id) { localStorage.setItem(STORAGE_KEY, JSON.stringify(loadAudits().filter(function(a){return a.id!==id;}))); }
+function exportAuditJson(audit) {
+  var blob = new Blob([JSON.stringify(audit, null, 2)], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a'); a.href = url;
+  a.download = 'audit-' + (audit.project.name || 'sans-nom').replace(/[^a-zA-Z0-9]/g, '_') + '-' + audit.id.slice(0, 8) + '.json';
+  a.click(); URL.revokeObjectURL(url);
+}
+function importAuditJson(file) {
+  return new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onload = function() { try { var d = JSON.parse(reader.result); if (!d.id||!d.project||!d.answers) throw 0; resolve(d); } catch(e) { reject(e); } };
+    reader.onerror = reject; reader.readAsText(file);
+  });
+}
+
+var SECTIONS = [
+  {id:'localisation',label:'Localisation',icon:'ti-map-pin',color:'#378ADD'},
+  {id:'foncier',label:'Foncier',icon:'ti-fence',color:'#7F77DD'},
+  {id:'batiment',label:'Bâtiment',icon:'ti-building',color:'#1D9E75'},
+  {id:'energie',label:'Énergie',icon:'ti-bolt',color:'#BA7517'},
+  {id:'reseaux',label:'Réseaux',icon:'ti-network',color:'#E24B4A'},
+  {id:'securite',label:'Sécurité',icon:'ti-shield-lock',color:'#C0392B'},
+  {id:'viequotidienne',label:'Vie quotidienne',icon:'ti-coffee',color:'#2ECC71'},
+  {id:'coworking',label:'Coworking',icon:'ti-users',color:'#D4537E'},
+  {id:'juridique',label:'Juridique',icon:'ti-scale',color:'#534AB7'},
+  {id:'activite',label:'Activité',icon:'ti-chart-bar',color:'#993556'}
+];
+
+var COUNTRY_DATA = {
+  FR:{label:'France',operators:['Orange','SFR','Bouygues Telecom','Free Mobile'],fiber:['Orange','SFR','Bouygues','Free Pro','Vodafone','Colt','Autre'],
+    leases:['Bail 3/6/9','Bail commercial','Bail dérogatoire (< 3 ans)','Bail professionnel','Crédit-bail (leasing)','Vente','Copropriété'],
+    norms:'Bail commercial 3/6/9 (L.145-1 C.com), décret tertiaire, ERP, PLU, DPE obligatoire.'},
+  GB:{label:'United Kingdom',operators:['EE/BT','Vodafone','Three','O2/Virgin Media'],fiber:['BT Openreach','Virgin Media O2','CityFibre','Vodafone','Colt','Autre'],
+    leases:['FRI Lease (Full Repairing)','IRI Lease (Internal Repairing)','Lease with break clause','License to occupy','Freehold purchase'],
+    norms:'Landlord & Tenant Act, EPC rating, Business Rates, MEES regulations.'},
+  DE:{label:'Deutschland',operators:['Deutsche Telekom','Vodafone','O2/Telefónica','1&1'],fiber:['Deutsche Telekom','Vodafone','1&1 Versatel','Colt','Autre'],
+    leases:['Gewerbemietvertrag (bail commercial)','Staffelmietvertrag (loyer progressif)','Indexmietvertrag (loyer indexé)','Untervermietung (sous-location)','Kauf (achat)'],
+    norms:'BGB §535-580a, GEG (Gebäudeenergiegesetz), Energieausweis obligatoire.'},
+  ES:{label:'España',operators:['Movistar','Vodafone','Orange','MásMóvil/Yoigo'],fiber:['Movistar','Vodafone','Orange','MásMóvil','Adamo','Autre'],
+    leases:['Arrendamiento de local de negocio','Contrato de industria','Subarriendo','Compraventa','Leasing inmobiliario'],
+    norms:'LAU (Ley de Arrendamientos Urbanos), Certificado Energético, Licencia de actividad.'},
+  IT:{label:'Italia',operators:['TIM','Vodafone','WindTre','Iliad'],fiber:['TIM','Fastweb','Vodafone','WindTre','Open Fiber','Autre'],
+    leases:['Locazione commerciale 6+6','Locazione transitoria','Affitto di ramo d\'azienda','Compravendita','Leasing immobiliare'],
+    norms:'L.392/1978 (equo canone), APE obbligatorio, SCIA per attività commerciale.'},
+  PT:{label:'Portugal',operators:['MEO','Vodafone','NOS','NOWO'],fiber:['MEO','Vodafone','NOS','NOWO','Autre'],
+    leases:['Arrendamento comercial','Contrato de trespasse','Arrendamento transitório','Compra e venda','Leasing imobiliário'],
+    norms:'NRAU (Novo Regime do Arrendamento Urbano), Certificado Energético, Licença de utilização.'},
+  NL:{label:'Nederland',operators:['KPN','Vodafone','T-Mobile','Tele2'],fiber:['KPN','Ziggo','T-Mobile','Eurofiber','Colt','Autre'],
+    leases:['Huurovereenkomst 290-bedrijfsruimte (5+5)','Huurovereenkomst 230a (kantoor)','Onderhuur','Koop','Erfpacht'],
+    norms:'Burgerlijk Wetboek 7:290, Energielabel verplicht, Bouwbesluit, bestemmingsplan.'},
+  BE:{label:'Belgique / België',operators:['Proximus','Base/Telenet','Orange','Mobile Vikings'],fiber:['Proximus','Telenet','Orange','Eurofiber','Colt','Autre'],
+    leases:['Bail commercial (9 ans)','Bail de courte durée','Bail emphytéotique','Achat','Leasing immobilier'],
+    norms:'Loi sur les baux commerciaux (30/04/1951), PEB/EPB obligatoire, permis d\'urbanisme.'},
+  CH:{label:'Schweiz / Suisse',operators:['Swisscom','Sunrise','Salt','UPC'],fiber:['Swisscom','Sunrise','Salt','Init7','Autre'],
+    leases:['Bail commercial (CO art. 253-274g)','Bail à durée déterminée','Bail à durée indéterminée','Achat','Droit de superficie'],
+    norms:'Code des Obligations art. 253-274g, CECB (certificat énergétique cantonal), permis de construire cantonal.'},
+  LU:{label:'Luxembourg',operators:['POST','Tango','Orange'],fiber:['POST','Tango','Orange','Autre'],
+    leases:['Bail commercial','Bail à usage professionnel','Bail emphytéotique','Achat'],
+    norms:'Loi du 3 février 2018 (bail commercial), passeport énergétique, PAG/PAP.'},
+  IE:{label:'Ireland',operators:['Three','Vodafone','Eir','48 (formerly Tesco)'],fiber:['Eir','SIRO','Virgin Media','BT Ireland','Autre'],
+    leases:['Commercial Lease (25 yr standard)','Licence agreement','Turnkey lease','Freehold purchase'],
+    norms:'Landlord and Tenant (Amendment) Act 1980, BER (Building Energy Rating) mandatory, planning permission.'},
+  AT:{label:'Österreich',operators:['A1','Magenta (T-Mobile)','Drei'],fiber:['A1','Magenta','Drei','Autre'],
+    leases:['Mietvertrag (MRG)','Pachtvertrag','Untervermietung','Kauf','Baurecht'],
+    norms:'MRG (Mietrechtsgesetz), Energieausweis Pflicht, Baubewilligung.'},
+  PL:{label:'Polska',operators:['Orange','T-Mobile','Plus','Play'],fiber:['Orange','T-Mobile','Netia','Inea','Autre'],
+    leases:['Najem lokalu użytkowego','Dzierżawa','Podnajem','Kupno','Leasing'],
+    norms:'Kodeks Cywilny, Świadectwo Energetyczne, pozwolenie na użytkowanie.'}
+};
+
+var SECTION_KEYS = {
+  localisation:['pays','adresse','zone_plu','acces_autoroute','acces_transport','stationnement','visibilite','zone_tension','tension_emploi','profils_disponibles','universites_proximite','concurrence_employeurs'],
+  foncier:['surface_terrain','surface_plancher','risques_naturels','pollution_sols','division_possible','permis_construire','nuisances_sonores','qualite_air','espaces_verts','ilot_chaleur'],
+  batiment:['annee_construction','structure','nb_etages','surface_par_etage','hauteur_libre','plancher_technique','charge_sol_beton','etat_general','travaux_requis','accessibilite_pmr','monte_charge','amiante_plomb','igh','igh_contraintes','multi_tenant','client_concurrent_proximite','erp_classement','erp_type','commission_securite','decret_tertiaire','adap'],
+  energie:['dpe_classe','puissance_elec','alimentation_gaz','chauffage_clim','redondance_elec','certification_env','gtb_presence','gtb_protocole','gtb_supervision','gtb_maintenance','eclairage_type','eclairage_allumage','eclairage_graduable','eclairage_etat'],
+  reseaux:['cablage_existant','categorie_cable','operateurs_presents','fibre_optique','reseau_5g','reseau_4g','signal_orange','signal_sfr','signal_bouyguestelecom','signal_freemobile'],
+  securite:['sprinkler','desenfumage','detection_incendie','extincteurs','sst','videosurveillance','gardiennage','alarme_intrusion','png_presence','secure_room','pci_dss_status','pci_dss_level','pci_segmentation','pci_acces_physique','pci_video_cde','pci_logs','pci_dernier_audit'],
+  viequotidienne:['pk_in_bat_places','pk_in_bat_securise','pk_in_bat_bornes','pk_in_ext_places','pk_in_ext_securise','pk_in_ext_bornes','pk_out_bat_places','pk_out_bat_securise','pk_out_bat_bornes','pk_out_ext_places','pk_out_ext_securise','pk_out_ext_bornes','pk_public_places','resto_entreprise','frigo_connecte','food_truck','frigo_microonde','resto_proximite','pistes_cyclables','velo_priv_type','velo_priv_securise','velo_priv_capacite','velo_prox_type','velo_prox_distance','vestiaires_cyclistes','autopartage','detente_interieur','detente_exterieur','douches','salle_sport','conciergerie'],
+  coworking:['cw_espaces_privatifs','cw_nb_bureaux_fermes','cw_nb_salles_reunion','cw_postes_open_space','cw_duree_min','cw_heures_acces','cw_services_inclus','cw_score'],
+  juridique:['statut_juridique','duree_bail','loyer_annuel','franchise_loyer','valeur_venale','type_bailleur','property_manager','property_manager_nom','charges_recup','charges_non_recup','teom','cfe','cout_amenagement','budget_travaux'],
+  activite:['capacite_accueil','expansion_possible','voisinage','nuisances','mono_acces','risques_climat_2050','pca_pra','zsp','score_global']
+};
+
+var REPORT_SECTIONS = {
+  localisation:[{key:'pays',label:'Pays'},{key:'adresse',label:'Adresse'},{key:'zone_plu',label:'Zone PLU'},{key:'acces_autoroute',label:'Autoroute (min)'},{key:'acces_transport',label:'Transports'},{key:'stationnement',label:'Stationnement'},{key:'visibilite',label:'Visibilité (/5)'},{key:'zone_tension',label:'Zone tendue'},{key:'tension_emploi',label:'Emploi'},{key:'profils_disponibles',label:'Profils'},{key:'universites_proximite',label:'Universités'},{key:'concurrence_employeurs',label:'Concurrence employeurs'}],
+  foncier:[{key:'surface_terrain',label:'Terrain (m²)'},{key:'surface_plancher',label:'Plancher (m²)'},{key:'risques_naturels',label:'Risques'},{key:'pollution_sols',label:'Pollution'},{key:'division_possible',label:'Divisibilité'},{key:'permis_construire',label:'Permis'},{key:'nuisances_sonores',label:'Bruit'},{key:'qualite_air',label:'Air'},{key:'espaces_verts',label:'Espaces verts'},{key:'ilot_chaleur',label:'Îlot chaleur'}],
+  batiment:[{key:'annee_construction',label:'Année'},{key:'structure',label:'Structure'},{key:'nb_etages',label:'Nb étages',isNew:true},{key:'surface_par_etage',label:'Surface/étage (m²)',isNew:true},{key:'hauteur_libre',label:'Hauteur (m)'},{key:'plancher_technique',label:'Plancher technique',isNew:true},{key:'charge_sol_beton',label:'Charge sol (kg/m²)',isNew:true},{key:'etat_general',label:'État (/5)'},{key:'travaux_requis',label:'Travaux'},{key:'accessibilite_pmr',label:'PMR'},{key:'monte_charge',label:'Monte-charge'},{key:'amiante_plomb',label:'Amiante/plomb'},{key:'igh',label:'IGH',isNew:true},{key:'igh_contraintes',label:'IGH — Contraintes',isNew:true},{key:'multi_tenant',label:'Multi-tenant',isNew:true},{key:'client_concurrent_proximite',label:'Client/concurrent à proximité',isNew:true},{key:'erp_classement',label:'ERP'},{key:'erp_type',label:'Type ERP'},{key:'commission_securite',label:'Commission sécurité'},{key:'decret_tertiaire',label:'Décret tertiaire'},{key:'adap',label:'Ad\'AP'}],
+  energie:[{key:'dpe_classe',label:'DPE'},{key:'puissance_elec',label:'Puissance (kVA)'},{key:'alimentation_gaz',label:'Gaz'},{key:'chauffage_clim',label:'Chauffage & Clim'},{key:'redondance_elec',label:'Redondance'},{key:'certification_env',label:'Certifications'},{key:'gtb_presence',label:'GTB',isNew:true},{key:'gtb_protocole',label:'Protocole GTB',isNew:true},{key:'gtb_supervision',label:'Supervision GTB',isNew:true},{key:'gtb_maintenance',label:'Maintenance GTB',isNew:true},{key:'eclairage_type',label:'Type éclairage',isNew:true},{key:'eclairage_allumage',label:'Mode allumage',isNew:true},{key:'eclairage_graduable',label:'Graduable',isNew:true},{key:'eclairage_etat',label:'État éclairage',isNew:true}],
+  reseaux:[{key:'cablage_existant',label:'Câblage',isNew:true},{key:'categorie_cable',label:'Catégorie',isNew:true},{key:'operateurs_presents',label:'Opérateurs fibre',isNew:true},{key:'fibre_optique',label:'Fibre'},{key:'reseau_5g',label:'5G',isNew:true},{key:'reseau_4g',label:'4G',isNew:true},{key:'signal_orange',label:'Signal Orange',isNew:true},{key:'signal_sfr',label:'Signal SFR',isNew:true},{key:'signal_bouyguestelecom',label:'Signal Bouygues',isNew:true},{key:'signal_freemobile',label:'Signal Free',isNew:true}],
+  securite:[{key:'sprinkler',label:'Sprinkler'},{key:'desenfumage',label:'Désenfumage',isNew:true},{key:'detection_incendie',label:'Détection incendie',isNew:true},{key:'extincteurs',label:'Extincteurs',isNew:true},{key:'sst',label:'Contrôle d\'accès'},{key:'videosurveillance',label:'Vidéosurveillance',isNew:true},{key:'gardiennage',label:'Gardiennage',isNew:true},{key:'alarme_intrusion',label:'Alarme intrusion',isNew:true},{key:'png_presence',label:'PNG (sûreté)',isNew:true},{key:'secure_room',label:'Secure Room',isNew:true},{key:'pci_dss_status',label:'PCI DSS',isNew:true},{key:'pci_dss_level',label:'Niveau PCI DSS',isNew:true},{key:'pci_segmentation',label:'Segmentation réseau CDE',isNew:true},{key:'pci_acces_physique',label:'Accès physique CDE',isNew:true},{key:'pci_video_cde',label:'Vidéo CDE',isNew:true},{key:'pci_logs',label:'Logs & traçabilité',isNew:true},{key:'pci_dernier_audit',label:'Dernier audit ASV',isNew:true}],
+  viequotidienne:[{key:'pk_in_bat_places',label:'Indoor bâtiment (places)'},{key:'pk_in_bat_securise',label:'Indoor bât. sécurisé'},{key:'pk_in_bat_bornes',label:'Indoor bât. bornes VE'},{key:'pk_in_bat_bornes_nb',label:'Indoor bât. nb bornes'},{key:'pk_in_bat_bornes_kw',label:'Indoor bât. puissance'},{key:'pk_in_ext_places',label:'Indoor hors bât. (places)'},{key:'pk_in_ext_securise',label:'Indoor ext. sécurisé'},{key:'pk_in_ext_bornes',label:'Indoor ext. bornes VE'},{key:'pk_out_bat_places',label:'Outdoor bât. (places)'},{key:'pk_out_bat_securise',label:'Outdoor bât. sécurisé'},{key:'pk_out_bat_bornes',label:'Outdoor bât. bornes VE'},{key:'pk_out_ext_places',label:'Outdoor hors bât. (places)'},{key:'pk_out_ext_securise',label:'Outdoor ext. sécurisé'},{key:'pk_out_ext_bornes',label:'Outdoor ext. bornes VE'},{key:'pk_public_places',label:'Parking public (places)'},{key:'resto_entreprise',label:'Restaurant entreprise'},{key:'resto_distance',label:'Distance resto (m)'},{key:'frigo_connecte',label:'Frigos connectés'},{key:'food_truck',label:'Food truck'},{key:'frigo_microonde',label:'Frigo + micro-ondes'},{key:'resto_proximite',label:'Restauration proximité'},{key:'detente_interieur',label:'Détente intérieur'},{key:'detente_exterieur',label:'Détente extérieur'},{key:'douches',label:'Douches'},{key:'salle_sport',label:'Salle de sport'},{key:'pistes_cyclables',label:'Pistes cyclables'},{key:'velo_priv_type',label:'Vélos privatif — type'},{key:'velo_priv_securise',label:'Vélos privatif — sécurisé'},{key:'velo_priv_capacite',label:'Vélos privatif — places'},{key:'velo_prox_type',label:'Vélos proximité — type'},{key:'velo_prox_distance',label:'Vélos proximité — distance'},{key:'vestiaires_cyclistes',label:'Vestiaires cyclistes'},{key:'autopartage',label:'Autopartage'},{key:'conciergerie',label:'Conciergerie'}],
+  coworking:[{key:'cw_espaces_privatifs',label:'Privatifs',isNew:true},{key:'cw_nb_bureaux_fermes',label:'Bureaux',isNew:true},{key:'cw_nb_salles_reunion',label:'Réunion',isNew:true},{key:'cw_postes_open_space',label:'Open space',isNew:true},{key:'cw_duree_min',label:'Durée min',isNew:true},{key:'cw_heures_acces',label:'Horaires',isNew:true},{key:'cw_services_inclus',label:'Services',isNew:true},{key:'cw_score',label:'Qualité (/5)',isNew:true}],
+  juridique:[{key:'statut_juridique',label:'Statut'},{key:'duree_bail',label:'Bail'},{key:'loyer_annuel',label:'Loyer (€/m²/an)'},{key:'franchise_loyer',label:'Franchise'},{key:'valeur_venale',label:'Valeur vénale (€)'},{key:'type_bailleur',label:'Type bailleur',isNew:true},{key:'property_manager',label:'Property Manager',isNew:true},{key:'property_manager_nom',label:'Nom PM',isNew:true},{key:'charges_recup',label:'Charges récup. (€/m²/an)'},{key:'charges_non_recup',label:'Charges non récup.'},{key:'teom',label:'TEOM (€/an)'},{key:'cfe',label:'CFE (€/an)'},{key:'cout_amenagement',label:'Aménagement (€/m²)'},{key:'budget_travaux',label:'Budget travaux (€)'}],
+  activite:[{key:'capacite_accueil',label:'Capacité'},{key:'expansion_possible',label:'Extension (/5)'},{key:'voisinage',label:'Voisinage'},{key:'nuisances',label:'Nuisances'},{key:'mono_acces',label:'Mono-accès'},{key:'risques_climat_2050',label:'Risques climat 2050'},{key:'pca_pra',label:'PCA/PRA'},{key:'zsp',label:'ZSP'},{key:'score_global',label:'Score global (/5)'}]
+};
+
+function isAnswered(v){if(v==null||v==='')return false;if(Array.isArray(v))return v.length>0;return true;}
+function fmtAns(v,isScore){if(!isAnswered(v))return '—';if(Array.isArray(v))return v.join(', ');if(isScore&&typeof v==='number')return v+' / 5';return String(v);}
+// Quality scoring: options ordered best→worst, score = position / total (1.0 = best, 0.0 = worst)
+var QUALITY_MAP = {
+  dpe_classe:{opts:['A','B','C','D','E','F','G'],worst:['Non réalisé']},
+  zone_plu:{best:['U — Urbanisée'],neutral:['AU — À urbaniser'],bad:['N — Naturelle','A — Agricole']},
+  stationnement:{opts:['Suffisant','Limité','Insuffisant']},
+  pollution_sols:{opts:['Non','RAS','Non réalisé','Dépollution']},
+  plancher_technique:{opts:['Oui','À vérifier','Non']},
+  cablage_existant:{opts:['Oui','À vérifier','Non']},
+  fibre_optique:{opts:['> 1 Gb/s','100 Mb–1 Gb','< 100 Mb','À vérifier','Pas de fibre']},
+  reseau_5g:{opts:['Oui — indoor','Oui — outdoor uniquement','À vérifier','Non']},
+  reseau_4g:{opts:['Oui — bonne couverture','Oui — couverture partielle','À vérifier','Non']},
+  sprinkler:{opts:['Installé — conforme','Partiel','À vérifier','Installé — non conforme','Absent']},
+  accessibilite_pmr:{opts:['Conforme','Partiel','Non conforme']},
+  eclairage_type:{opts:['LED intégral','LED partiel (zones communes)','Mixte LED + ancien','Fluorescent T5','Fluorescent T8 (ancien)','Halogène']},
+  eclairage_allumage:{opts:['Détection de présence + luminosité','Détection de présence seule','Centralisé via GTB','Horloge / programmation','Interrupteur manuel']},
+  gtb_presence:{opts:['Oui — opérationnelle','Oui — partielle','À vérifier','Oui — obsolète / hors service','Non']},
+  pistes_cyclables:{opts:['Oui — accès direct','Oui — < 200 m','Oui — < 500 m','Non']},
+  detente_interieur:{opts:['Oui — aménagé','Possible (espace disponible)','Oui — à aménager','Non']},
+  detente_exterieur:{best:['Oui — terrasse / patio','Oui — jardin / parc','Oui — rooftop','Oui — cour intérieure'],bad:['Non']},
+  tension_emploi:{opts:['Très détendu (surplus)','Détendu','Équilibré','Tendu','Très tendu (pénurie)']},
+  nuisances_sonores:{opts:['Calme (< 45 dB)','Modéré (45–60 dB)','Non mesuré','Bruyant (60–75 dB)','Très bruyant (> 75 dB)']},
+  qualite_air:{opts:['Bonne','Moyenne','Non évaluée','Dégradée','Mauvaise']},
+  espaces_verts:{opts:['Parc / jardin < 200 m','Parc < 500 m','Espaces verts > 500 m','Aucun à proximité']},
+  multi_tenant:{opts:['Non — mono-occupant','Partiellement','À déterminer','Oui — multi-locataires']},
+  igh:{opts:['Non','À vérifier','Oui']},
+  mono_acces:{opts:['Non — multi-accès','À évaluer','Oui — transport unique','Oui — axe routier unique']},
+};
+
+function qualityScore(ans){
+  var total=0,count=0;
+  Object.keys(QUALITY_MAP).forEach(function(k){
+    var v=ans[k]; if(!isAnswered(v)||typeof v!=='string')return;
+    var m=QUALITY_MAP[k];
+    if(m.opts){
+      var idx=m.opts.indexOf(v);
+      if(idx<0)return;
+      total+=(m.opts.length-1-idx)/(m.opts.length-1);count++;
+    } else {
+      if(m.best&&m.best.indexOf(v)>=0){total+=1;count++;}
+      else if(m.neutral&&m.neutral.indexOf(v)>=0){total+=0.5;count++;}
+      else if(m.bad&&m.bad.indexOf(v)>=0){total+=0;count++;}
+      else if(m.worst&&m.worst.indexOf(v)>=0){total+=0;count++;}
+    }
+  });
+  // Signal quality scores
+  ['signal_orange','signal_sfr','signal_bouyguestelecom','signal_freemobile',
+   'signal_eebt','signal_vodafone','signal_three','signal_o2virginmedia',
+   'signal_deutschetelekom','signal_1und1','signal_o2telefnica',
+   'signal_movistar','signal_msmvilyoigo',
+   'signal_tim','signal_windtre','signal_iliad',
+   'signal_meo','signal_nos','signal_nowo',
+   'signal_kpn','signal_tmobile','signal_tele2',
+   'signal_proximus','signal_basetelenet','signal_mobilevikings',
+   'signal_swisscom','signal_sunrise','signal_salt','signal_upc',
+   'signal_post','signal_tango',
+   'signal_eir','signal_48formerlytesco',
+   'signal_a1','signal_magentatmobile','signal_drei',
+   'signal_plus','signal_play'
+  ].forEach(function(k){
+    var v=ans[k];if(!isAnswered(v))return;
+    var sigOpts=['Excellent','Bon','Moyen','Faible','Aucun signal','Non testé'];
+    var idx=sigOpts.indexOf(v);if(idx<0||v==='Non testé')return;
+    total+=(4-idx)/4;count++;
+  });
+  return count?total/count:null;
+}
+
+function scoreGlobal(ans){
+  var starKeys=['visibilite','etat_general','expansion_possible','score_global','cw_score'];
+  var starVals=starKeys.map(function(k){return ans[k];}).filter(function(v){return typeof v==='number';});
+  var starPct=starVals.length?starVals.reduce(function(a,b){return a+b;},0)/(starVals.length*5):null;
+  var allKeys=Object.values(SECTION_KEYS).reduce(function(a,b){return a.concat(b);},[]);
+  var filled=allKeys.filter(function(k){return isAnswered(ans[k]);}).length;
+  var completionPct=allKeys.length?filled/allKeys.length:0;
+  var qScore=qualityScore(ans);
+  // Weighted: quality 50%, stars 25% (if present), completion 25%
+  if(starPct!==null&&qScore!==null) return Math.round((qScore*0.50+starPct*0.25+completionPct*0.25)*100);
+  if(qScore!==null) return Math.round((qScore*0.60+completionPct*0.40)*100);
+  if(starPct!==null) return Math.round((starPct*0.60+completionPct*0.40)*100);
+  return Math.round(completionPct*100);
+}
+function computeAlerts(ans){
+  var a=[];
+  if(ans.cablage_existant==='Non')a.push('Câblage réseau absent.');
+  if(typeof ans.categorie_cable==='string'&&ans.categorie_cable.indexOf('Cat 5e')===0)a.push('Câblage Cat 5e obsolète.');
+  if(ans.plancher_technique==='Non')a.push('Absence de plancher technique.');
+  if(ans.dpe_classe==='F'||ans.dpe_classe==='G')a.push('DPE '+ans.dpe_classe+' : rénovation énergétique obligatoire.');
+  if(Array.isArray(ans.risques_naturels)&&ans.risques_naturels.indexOf('Inondation')>=0)a.push('Risque inondation identifié.');
+  return a;
+}
+var NONE_KW=['aucun','aucune','non identifi'];
+function isNone(o){var lo=o.toLowerCase();for(var i=0;i<NONE_KW.length;i++){if(lo.indexOf(NONE_KW[i])===0)return true;}return false;}
+
+function Field(props){
+  var label=tl(props.label),value=props.value,onChange=props.onChange,type=props.type||'text',opts=props.opts,hint=props.hint,isNew=props.isNew,placeholder=props.placeholder;
+  var input;
+  if(opts){
+    input=html`<select value=${value!=null?value:''} onChange=${function(e){onChange(e.target.value);}}>
+      <option value="">${t('select_placeholder')}</option>
+      ${opts.map(function(o){return html`<option key=${o} value=${o}>${o}</option>`;})}
+    </select>`;
+  } else if(type==='textarea'){
+    input=html`<textarea value=${value!=null?value:''} onInput=${function(e){onChange(e.target.value);}} placeholder=${placeholder}></textarea>`;
+  } else {
+    input=html`<input type=${type} value=${value!=null?value:''} onInput=${function(e){onChange(e.target.value);}} placeholder=${placeholder} />`;
+  }
+  return html`<div class="fld">
+    <label>${label}${isNew?html`<span class="new-bdg">${currentLang==='fr'?'Nouveau':'New'}</span>`:null}</label>
+    ${input}
+    ${hint?html`<span class="hint">${hint}</span>`:null}
+  </div>`;
+}
+
+function Stars(props){
+  var label=tl(props.label),value=props.value,onChange=props.onChange,isNew=props.isNew;
+  var hs=useState(0),hover=hs[0],setHover=hs[1];
+  var v=value||0;
+  return html`<div class="fld">
+    <label>${label}${isNew?html`<span class="new-bdg">Nouveau</span>`:null}</label>
+    <div class="stars" onMouseLeave=${function(){setHover(0);}}>
+      ${[1,2,3,4,5].map(function(i){return html`<span key=${i} class=${'star'+((hover||v)>=i?' on':'')} onMouseEnter=${function(){setHover(i);}} onClick=${function(){onChange(i);}}>★</span>`;})}
+      ${v>0?html`<span class="star-val">${v} / 5</span>`:null}
+    </div>
+  </div>`;
+}
+
+function MultiSelect(props){
+  var label=tl(props.label),value=props.value,onChange=props.onChange,opts=props.opts,hint=props.hint,isNew=props.isNew;
+  function toggle(o){
+    if(value.indexOf(o)>=0)return onChange(value.filter(function(x){return x!==o;}));
+    if(isNone(o))return onChange([o]);
+    onChange(value.filter(function(x){return !isNone(x);}).concat([o]));
+  }
+  return html`<div class="fld">
+    <label>${label}${isNew?html`<span class="new-bdg">Nouveau</span>`:null}</label>
+    <div class="ms-grid">
+      ${opts.map(function(o){var sel=value.indexOf(o)>=0;return html`<span key=${o} class=${'ms-chip'+(sel?' sel':'')} onClick=${function(){toggle(o);}}>
+        ${sel?html`<i class="ti ti-check"></i>`:null}${o}
+      </span>`;})}
+    </div>
+    ${hint?html`<span class="hint">${hint}</span>`:null}
+  </div>`;
+}
+
+function SectionLocalisation(p){var ans=p.ans,set=p.set;
+  return html`<div>
+    <div class="card"><div class="sec-title"><i class="ti ti-map-pin"></i> ${tl('Localisation')}</div>
+      <div class="fg fg2">
+        <${Field} label="Pays" value=${ans.pays} onChange=${function(v){set('pays',v);}} opts=${Object.keys(COUNTRY_DATA).map(function(k){return COUNTRY_DATA[k].label;})} />
+        <${Field} label="Adresse / commune" value=${ans.adresse} onChange=${function(v){set('adresse',v);}} placeholder="Ex : 12 rue de la Paix, 75001 Paris" />
+      </div>
+      <div class="fg fg2">
+        <${Field} label="Zone PLU" value=${ans.zone_plu} onChange=${function(v){set('zone_plu',v);}} opts=${['U — Urbanisée','AU — À urbaniser','N — Naturelle','A — Agricole']} />
+        <${Field} label="Zone tendue" value=${ans.zone_tension} onChange=${function(v){set('zone_tension',v);}} opts=${['Très forte','Forte','Modérée','Faible','Aucune']} />
+      </div></div>
+    <div class="card"><div class="sec-title"><i class="ti ti-bus"></i> ${tl('Accessibilité')}</div>
+      <div class="fg fg2">
+        <${Field} label="Autoroute (min)" value=${ans.acces_autoroute} onChange=${function(v){set('acces_autoroute',v);}} type="number" placeholder="15" />
+        <${Field} label="Stationnement" value=${ans.stationnement} onChange=${function(v){set('stationnement',v);}} opts=${['Suffisant','Limité','Insuffisant']} />
+      </div>
+      <${MultiSelect} label="Transports" value=${ans.acces_transport||[]} onChange=${function(v){set('acces_transport',v);}} opts=${['Métro / RER','Bus','Tramway','Gare SNCF','Aéroport < 30 min']} />
+      <div style="margin-top:12px"><${Stars} label="Visibilité & image" value=${ans.visibilite} onChange=${function(v){set('visibilite',v);}} /></div>
+    </div>
+    <div class="card"><div class="sec-title"><i class="ti ti-briefcase"></i> ${tl("Bassin d'emploi & attractivité")}</div>
+      <div class="fg fg2">
+        <${Field} label="Tension du marché de l'emploi local" value=${ans.tension_emploi} onChange=${function(v){set('tension_emploi',v);}} opts=${['Très tendu (pénurie)','Tendu','Équilibré','Détendu','Très détendu (surplus)']} />
+        <${Field} label="Profils disponibles dominants" value=${ans.profils_disponibles} onChange=${function(v){set('profils_disponibles',v);}} opts=${['Cadres / ingénieurs','Tertiaire qualifié','Techniciens','Logistique / manutention','Mixte','Difficile à recruter']} />
+      </div>
+      <div class="fg fg2">
+        <${Field} label="Universités / grandes écoles à proximité" value=${ans.universites_proximite} onChange=${function(v){set('universites_proximite',v);}} opts=${['Oui — < 5 km','Oui — < 15 km','Oui — > 15 km','Non']} />
+        <${Field} label="Concurrence employeurs sur le bassin" value=${ans.concurrence_employeurs} onChange=${function(v){set('concurrence_employeurs',v);}} opts=${['Forte (zone tertiaire dense)','Modérée','Faible','Zone peu concurrentielle']} />
+      </div>
+    </div>
+  </div>`;
+}
+function SectionFoncier(p){var ans=p.ans,set=p.set;
+  return html`<div>
+    <div class="card"><div class="sec-title"><i class="ti ti-ruler-measure"></i> ${tl('Surfaces')}</div>
+      <div class="fg fg3">
+        <${Field} label="Terrain (m²)" value=${ans.surface_terrain} onChange=${function(v){set('surface_terrain',v);}} type="number" placeholder="5000" />
+        <${Field} label="Plancher (m²)" value=${ans.surface_plancher} onChange=${function(v){set('surface_plancher',v);}} type="number" placeholder="2500" />
+        <${Field} label="Divisibilité" value=${ans.division_possible} onChange=${function(v){set('division_possible',v);}} opts=${['Oui','Partiellement','Non','À étudier']} />
+      </div>
+      <${Field} label="Permis de construire" value=${ans.permis_construire} onChange=${function(v){set('permis_construire',v);}} type="textarea" /></div>
+    <div class="card"><div class="sec-title"><i class="ti ti-shield-exclamation"></i> ${tl('Risques')}</div>
+      <${MultiSelect} label="Risques naturels" value=${ans.risques_naturels||[]} onChange=${function(v){set('risques_naturels',v);}} opts=${['Aucun identifié','Inondation','Séisme','Glissement','Retrait-gonflement']} />
+      <div style="margin-top:12px"><${Field} label="Pollution sols" value=${ans.pollution_sols} onChange=${function(v){set('pollution_sols',v);}} opts=${['Non','RAS','Dépollution','Non réalisé']} /></div></div>
+    <div class="card"><div class="sec-title"><i class="ti ti-leaf"></i> ${tl('Qualité environnementale du site')}</div>
+      <div class="fg fg2">
+        <${Field} label="Nuisances sonores" value=${ans.nuisances_sonores} onChange=${function(v){set('nuisances_sonores',v);}} opts=${['Calme (< 45 dB)','Modéré (45–60 dB)','Bruyant (60–75 dB)','Très bruyant (> 75 dB)','Non mesuré']} hint="Proximité voie ferrée, aéroport, autoroute, zone industrielle." />
+        <${Field} label="Qualité de l'air (Atmo)" value=${ans.qualite_air} onChange=${function(v){set('qualite_air',v);}} opts=${['Bonne','Moyenne','Dégradée','Mauvaise','Non évaluée']} />
+      </div>
+      <div class="fg fg2">
+        <${Field} label="Espaces verts à proximité" value=${ans.espaces_verts} onChange=${function(v){set('espaces_verts',v);}} opts=${['Parc / jardin < 200 m','Parc < 500 m','Espaces verts > 500 m','Aucun à proximité']} />
+        <${Field} label="Îlot de chaleur urbain" value=${ans.ilot_chaleur} onChange=${function(v){set('ilot_chaleur',v);}} opts=${['Faible (zone végétalisée)','Modéré','Fort (zone très minérale)','Non évalué']} />
+      </div>
+    </div>
+  </div>`;
+}
+function SectionBatiment(p){var ans=p.ans,set=p.set;
+  return html`<div>
+    <div class="card"><div class="sec-title"><i class="ti ti-building"></i> ${tl('Structure')}</div>
+      <div class="fg fg3">
+        <${Field} label="Année" value=${ans.annee_construction} onChange=${function(v){set('annee_construction',v);}} type="number" placeholder="1995" />
+        <${Field} label="Structure" value=${ans.structure} onChange=${function(v){set('structure',v);}} opts=${['Béton','Ossature métallique','Bois','Mixte','Maçonnerie']} />
+        <${Field} label="Hauteur libre (m)" value=${ans.hauteur_libre} onChange=${function(v){set('hauteur_libre',v);}} type="number" placeholder="2.7" />
+      </div>
+      <div class="fg fg2">
+        <${Field} label="Nombre d'étages" value=${ans.nb_etages} onChange=${function(v){set('nb_etages',v);}} type="number" placeholder="5" isNew=${true} />
+        <${Field} label="Surface par étage (m²)" value=${ans.surface_par_etage} onChange=${function(v){set('surface_par_etage',v);}} type="number" placeholder="500" isNew=${true} />
+      </div>
+      <div class="fg fg3">
+        <${Field} label="PMR" value=${ans.accessibilite_pmr} onChange=${function(v){set('accessibilite_pmr',v);}} opts=${['Conforme','Partiel','Non conforme']} />
+        <${Field} label="Monte-charge" value=${ans.monte_charge} onChange=${function(v){set('monte_charge',v);}} opts=${['Non','< 500 kg','500–1000 kg','> 1000 kg']} />
+        <${Field} label="Amiante/plomb" value=${ans.amiante_plomb} onChange=${function(v){set('amiante_plomb',v);}} opts=${['RAS','Présence','Dépollution','Non réalisés']} />
+      </div>
+      <${Stars} label="État général" value=${ans.etat_general} onChange=${function(v){set('etat_general',v);}} /></div>
+    <div class="card"><div class="sec-title"><i class="ti ti-tools"></i> ${tl('Infrastructure')}</div>
+      <div class="fg fg2">
+        <${Field} label="Plancher technique" value=${ans.plancher_technique} onChange=${function(v){set('plancher_technique',v);}} opts=${['Oui','Non','À vérifier']} isNew=${true} />
+        <${Field} label="Charge sol (kg/m²)" value=${ans.charge_sol_beton} onChange=${function(v){set('charge_sol_beton',v);}} type="number" placeholder="250" isNew=${true} />
+      </div>
+      <${Field} label="Travaux estimés" value=${ans.travaux_requis} onChange=${function(v){set('travaux_requis',v);}} type="textarea" /></div>
+    <div class="card"><div class="sec-title"><i class="ti ti-building-skyscraper"></i> ${tl('IGH & Occupation')} <span class="new-bdg">${currentLang==='fr'?'Nouveau':'New'}</span></div>
+      <${Field} label="Immeuble de Grande Hauteur (IGH)" value=${ans.igh} onChange=${function(v){set('igh',v);}} opts=${['Oui','Non','À vérifier']} isNew=${true} hint="IGH : > 28 m habitation, > 50 m bureaux." />
+      ${ans.igh==='Oui'?html`<div style="margin-top:12px"><${Field} label="Contraintes IGH (détail)" value=${ans.igh_contraintes} onChange=${function(v){set('igh_contraintes',v);}} type="textarea" placeholder="Classement IGH, SSI, désenfumage, compartimentage, accès pompiers, GTC sécurité incendie…" isNew=${true} /></div>`:null}
+      <div style="margin-top:12px" class="fg fg2">
+        <${Field} label="Multi-tenant" value=${ans.multi_tenant} onChange=${function(v){set('multi_tenant',v);}} opts=${['Oui — multi-locataires','Non — mono-occupant','Partiellement','À déterminer']} isNew=${true} />
+        <${Field} label="Client/concurrent à proximité" value=${ans.client_concurrent_proximite} onChange=${function(v){set('client_concurrent_proximite',v);}} opts=${['Oui — client','Oui — concurrent','Oui — les deux','Non','À vérifier']} isNew=${true} />
+      </div></div>
+    <div class="card"><div class="sec-title"><i class="ti ti-certificate"></i> ${tl('Conformité réglementaire')}</div>
+      <div class="fg fg2">
+        <${Field} label="Classement ERP" value=${ans.erp_classement} onChange=${function(v){set('erp_classement',v);}} opts=${['Non ERP','Cat. 5 (< 100 pers.)','Cat. 4 (100–300)','Cat. 3 (301–700)','Cat. 2 (701–1500)','Cat. 1 (> 1500)','À vérifier']} hint="Établissement Recevant du Public — classement selon capacité." />
+        <${Field} label="Type ERP" value=${ans.erp_type} onChange=${function(v){set('erp_type',v);}} opts=${['W — Bureaux','M — Commerce','L — Salle de réunion','N — Restauration','R — Enseignement','S — Bibliothèque','Non applicable','Autre / mixte']} />
+      </div>
+      <div class="fg fg2">
+        <${Field} label="Commission de sécurité" value=${ans.commission_securite} onChange=${function(v){set('commission_securite',v);}} opts=${['Avis favorable (< 1 an)','Avis favorable (1–3 ans)','Avis favorable (> 3 ans)','Avis défavorable','Jamais visitée','Non applicable']} />
+        <${Field} label="Décret tertiaire" value=${ans.decret_tertiaire} onChange=${function(v){set('decret_tertiaire',v);}} opts=${['Assujetti — données déclarées (OPERAT)','Assujetti — non déclaré','Non assujetti (< 1000 m²)','Exempté','À vérifier']} hint="Obligation de réduction des consommations : -40% en 2030, -50% en 2040, -60% en 2050." />
+      </div>
+      <${Field} label="Accessibilité Ad\'AP" value=${ans.adap} onChange=${function(v){set('adap',v);}} opts=${['Conforme','Ad\'AP en cours','Ad\'AP achevé','Non conforme — pas d\'Ad\'AP','Non applicable']} />
+    </div>
+  </div>`;
+}
+function SectionEnergie(p){var ans=p.ans,set=p.set;
+  return html`<div>
+    <div class="card"><div class="sec-title"><i class="ti ti-bolt"></i> ${tl('Performance énergétique')}</div>
+      <div class="fg fg3">
+        <${Field} label="DPE" value=${ans.dpe_classe} onChange=${function(v){set('dpe_classe',v);}} opts=${['A','B','C','D','E','F','G','Non réalisé']} />
+        <${Field} label="Puissance (kVA)" value=${ans.puissance_elec} onChange=${function(v){set('puissance_elec',v);}} type="number" placeholder="200" />
+        <${Field} label="Gaz" value=${ans.alimentation_gaz} onChange=${function(v){set('alimentation_gaz',v);}} opts=${['Oui','Non','À raccorder']} />
+      </div>
+      <${Field} label="Chauffage et Climatisation" value=${ans.chauffage_clim} onChange=${function(v){set('chauffage_clim',v);}} opts=${['PAC réversible','Gaz naturel','Fioul','Réseau chaleur urbain','CTA sur réseau urbain','Électrique convecteurs','Électrique radiants','VRV / VRF','Rooftop','Géothermie','Non équipé']} />
+      <div style="margin-top:12px"><${MultiSelect} label="Redondance / secours électrique" value=${ans.redondance_elec||[]} onChange=${function(v){set('redondance_elec',v);}} opts=${['Groupe électrogène','UPS / Onduleur','Double dérivation','Inverseur de source','Batterie Li-ion','Aucune']} /></div>
+      <div style="margin-top:12px"><${MultiSelect} label="Certifications" value=${ans.certification_env||[]} onChange=${function(v){set('certification_env',v);}} opts=${['HQE','BREEAM','LEED','WELL','BBC','BACS','ISO 50001','Aucune']} /></div>
+    </div>
+    <div class="card"><div class="sec-title"><i class="ti ti-cpu"></i> ${tl('GTB')} <span class="new-bdg">${currentLang==='fr'?'Nouveau':'New'}</span></div>
+      <${Field} label="GTB présente" value=${ans.gtb_presence} onChange=${function(v){set('gtb_presence',v);}} opts=${['Oui — opérationnelle','Oui — partielle','Oui — obsolète / hors service','Non','À vérifier']} isNew=${true} />
+      <div style="margin-top:12px" class="fg fg2">
+        <${Field} label="Protocole de communication" value=${ans.gtb_protocole} onChange=${function(v){set('gtb_protocole',v);}} opts=${['BACnet','LON','KNX','Modbus','DALI (éclairage)','Propriétaire','Mixte / passerelles','Inconnu']} isNew=${true} hint="BACnet et KNX sont les standards ouverts les plus courants. Un protocole propriétaire peut engendrer un vendor lock-in." />
+        <${Field} label="Périmètre supervisé" value=${ans.gtb_supervision} onChange=${function(v){set('gtb_supervision',v);}} opts=${['CVC + éclairage + stores','CVC uniquement','Éclairage uniquement','CVC + éclairage','Comptage énergie seul','Non supervisé']} isNew=${true} />
+      </div>
+      <${Field} label="Contrat de maintenance GTB" value=${ans.gtb_maintenance} onChange=${function(v){set('gtb_maintenance',v);}} opts=${['Oui — contrat en cours','Oui — expiré','Non','Inclus dans maintenance générale','À vérifier']} isNew=${true} />
+    </div>
+    <div class="card"><div class="sec-title"><i class="ti ti-bulb"></i> ${tl('Éclairage')} <span class="new-bdg">${currentLang==='fr'?'Nouveau':'New'}</span></div>
+      <div class="fg fg2">
+        <${Field} label="Type d'éclairage" value=${ans.eclairage_type} onChange=${function(v){set('eclairage_type',v);}} opts=${['LED intégral','LED partiel (zones communes)','Fluorescent T5','Fluorescent T8 (ancien)','Halogène','Mixte LED + ancien','Inconnu']} isNew=${true} />
+        <${Field} label="Mode d'allumage" value=${ans.eclairage_allumage} onChange=${function(v){set('eclairage_allumage',v);}} opts=${['Détection de présence + luminosité','Détection de présence seule','Interrupteur manuel','Horloge / programmation','Centralisé via GTB','Mixte selon zones']} isNew=${true} />
+      </div>
+      <div class="fg fg2">
+        <${Field} label="Gradation / dimming" value=${ans.eclairage_graduable} onChange=${function(v){set('eclairage_graduable',v);}} opts=${['Oui — DALI','Oui — 1-10V','Oui — autre protocole','Non','Partiel']} isNew=${true} hint="La gradation permet d'ajuster l'intensité selon la lumière naturelle (décret tertiaire)." />
+        <${Field} label="État général éclairage" value=${ans.eclairage_etat} onChange=${function(v){set('eclairage_etat',v);}} opts=${['Récent / bon état','Correct','Vieillissant — relamping à prévoir','Obsolète — remplacement complet','Non évalué']} isNew=${true} />
+      </div>
+    </div>
+  </div>`;
+}
+function SectionReseaux(p){var ans=p.ans,set=p.set;
+  var cd=getCountryData(ans);
+  var fiberOps=cd?cd.fiber:['Orange','SFR','Bouygues','Free Pro','Vodafone','Colt','Autre'];
+  var mobileOps=cd?cd.operators:['Orange','SFR','Bouygues Telecom','Free Mobile'];
+  return html`<div>
+    <div class="card"><div class="sec-title"><i class="ti ti-network"></i> ${tl('Réseau')}</div>
+      <div class="fg fg1"><${Field} label="Câblage existant" value=${ans.cablage_existant} onChange=${function(v){set('cablage_existant',v);}} opts=${['Oui','Non','À vérifier']} isNew=${true} /></div>
+      <div class="fg fg2">
+        <${Field} label="Catégorie" value=${ans.categorie_cable} onChange=${function(v){set('categorie_cable',v);}} opts=${['Cat 5e','Cat 6','Cat 6A','Cat 7','Fibre','Mixte']} isNew=${true} />
+        <${Field} label="Fibre" value=${ans.fibre_optique} onChange=${function(v){set('fibre_optique',v);}} opts=${['> 1 Gb/s','100 Mb–1 Gb','< 100 Mb','Pas de fibre','À vérifier']} />
+      </div>
+      <${MultiSelect} label="Opérateurs fibre" value=${ans.operateurs_presents||[]} onChange=${function(v){set('operateurs_presents',v);}} opts=${fiberOps} isNew=${true} /></div>
+    <div class="card"><div class="sec-title"><i class="ti ti-antenna-bars-5"></i> ${tl('Couverture mobile')}${cd?html` <span style="font-size:10px;color:var(--accent2);text-transform:none;letter-spacing:0;font-weight:400">(${cd.label})</span>`:null}</div>
+      <div class="fg fg2">
+        <${Field} label="Réseau 5G présent" value=${ans.reseau_5g} onChange=${function(v){set('reseau_5g',v);}} opts=${['Oui — indoor','Oui — outdoor uniquement','Non','À vérifier']} isNew=${true} />
+        <${Field} label="Réseau 4G présent" value=${ans.reseau_4g} onChange=${function(v){set('reseau_4g',v);}} opts=${['Oui — bonne couverture','Oui — couverture partielle','Non','À vérifier']} isNew=${true} />
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:var(--text2);margin-bottom:8px">${tl("Qualité du signal par opérateur (dans le bâtiment) :")}</div>
+      ${mobileOps.map(function(op){
+        var k='signal_'+op.toLowerCase().replace(/[^a-z]/g,'');
+        return html`<div key=${op} class="fg fg2" style="margin-bottom:4px">
+          <div class="fld"><label style="min-width:120px;font-weight:600">${op}</label></div>
+          <${Field} label="" value=${ans[k]} onChange=${function(v){set(k,v);}} opts=${['Excellent','Bon','Moyen','Faible','Aucun signal','Non testé']} />
+        </div>`;
+      })}
+    </div>
+  </div>`;
+}
+function SectionSecurite(p){var ans=p.ans,set=p.set;
+  return html`<div>
+    <div class="card"><div class="sec-title"><i class="ti ti-fire"></i> ${tl('Sécurité incendie')}</div>
+      <div class="fg fg3">
+        <${Field} label="Sprinkler" value=${ans.sprinkler} onChange=${function(v){set('sprinkler',v);}} opts=${['Installé — conforme','Installé — non conforme','Absent','Partiel','À vérifier']} />
+        <${Field} label="Désenfumage" value=${ans.desenfumage} onChange=${function(v){set('desenfumage',v);}} opts=${['Naturel — conforme','Mécanique — conforme','Présent — non conforme','Absent','À vérifier']} isNew=${true} />
+        <${Field} label="Détection incendie" value=${ans.detection_incendie} onChange=${function(v){set('detection_incendie',v);}} opts=${['SSI cat. A','SSI cat. B','SSI cat. C/D/E','Détecteurs autonomes (DAAF)','Absent','À vérifier']} isNew=${true} />
+      </div>
+      <${Field} label="Extincteurs" value=${ans.extincteurs} onChange=${function(v){set('extincteurs',v);}} opts=${['Présents — vérifiés (< 1 an)','Présents — vérification expirée','Insuffisants','Absents','À vérifier']} isNew=${true} />
+    </div>
+    <div class="card"><div class="sec-title"><i class="ti ti-shield-lock"></i> ${tl("Sûreté & contrôle d'accès")}</div>
+      <div class="fg fg2">
+        <${Field} label="Contrôle d'accès" value=${ans.sst} onChange=${function(v){set('sst',v);}} opts=${['Badging + vidéo + gardiennage','Badging + vidéo','Badging seul','Digicode','Clé physique','Non équipé']} />
+        <${Field} label="Vidéosurveillance" value=${ans.videosurveillance} onChange=${function(v){set('videosurveillance',v);}} opts=${['IP — périmètre + intérieur','IP — périmètre seul','Analogique — vétuste','Absent','À installer']} isNew=${true} />
+      </div>
+      <div class="fg fg2">
+        <${Field} label="Gardiennage" value=${ans.gardiennage} onChange=${function(v){set('gardiennage',v);}} opts=${['24h/24','Heures ouvrées','Rondes ponctuelles','Télésurveillance','Aucun']} isNew=${true} />
+        <${Field} label="Alarme intrusion" value=${ans.alarme_intrusion} onChange=${function(v){set('alarme_intrusion',v);}} opts=${['Oui — raccordée télésurveillance','Oui — locale','Non','À installer']} isNew=${true} />
+      </div>
+      <div style="margin-top:12px" class="fg fg2">
+        <${Field} label="Présence de PNG (passage unipersonnel)" value=${ans.png_presence} onChange=${function(v){set('png_presence',v);}} opts=${['Oui — entrée principale','Oui — entrée + zones sensibles','Oui — zones sensibles uniquement','Non','Prévu / à installer']} isNew=${true} hint="Sas de sécurité anti-piggybacking permettant le passage d'une seule personne à la fois." />
+        <${Field} label="Secure Room / salle sécurisée" value=${ans.secure_room} onChange=${function(v){set('secure_room',v);}} opts=${['Oui — opérationnelle','Oui — à équiper','Non','Possible (espace identifié)','Non applicable']} isNew=${true} />
+      </div>
+    </div>
+    <div class="card"><div class="sec-title"><i class="ti ti-lock-square"></i> ${tl('Conformité PCI DSS')} <span class="new-bdg">${currentLang==='fr'?'Nouveau':'New'}</span></div>
+      <${Field} label="Conformité PCI DSS" value=${ans.pci_dss_status} onChange=${function(v){set('pci_dss_status',v);}} opts=${['Certifié PCI DSS (en cours de validité)','Certifié PCI DSS (expiré)','En cours de certification','Non certifié — conforme partiel','Non certifié — non conforme','Non applicable','À évaluer']} isNew=${true} hint="Payment Card Industry Data Security Standard — obligatoire pour tout environnement traitant des données de cartes bancaires." />
+      <div style="margin-top:12px"><${Field} label="Niveau PCI DSS" value=${ans.pci_dss_level} onChange=${function(v){set('pci_dss_level',v);}} opts=${['Niveau 1 (> 6M transactions/an)','Niveau 2 (1M–6M transactions/an)','Niveau 3 (20K–1M transactions e-commerce)','Niveau 4 (< 20K transactions)','Non applicable']} isNew=${true} /></div>
+      <div style="margin-top:12px;font-size:11px;color:var(--text2);margin-bottom:8px;font-weight:600">${tl('Exigences clés du site')} :</div>
+      <div class="fg fg2">
+        <${Field} label="Segmentation réseau" value=${ans.pci_segmentation} onChange=${function(v){set('pci_segmentation',v);}} opts=${['Oui — VLAN dédié CDE','Oui — firewall périmétrique','Partielle','Non','À évaluer']} isNew=${true} hint="Cardholder Data Environment (CDE) doit être isolé du reste du réseau." />
+        <${Field} label="Contrôle d'accès physique zone CDE" value=${ans.pci_acces_physique} onChange=${function(v){set('pci_acces_physique',v);}} opts=${['Badge + biométrie + vidéo','Badge + vidéo','Badge seul','Non sécurisé','Non applicable']} isNew=${true} />
+      </div>
+      <div class="fg fg2">
+        <${Field} label="Vidéosurveillance zone CDE" value=${ans.pci_video_cde} onChange=${function(v){set('pci_video_cde',v);}} opts=${['Oui — rétention ≥ 90 jours','Oui — rétention < 90 jours','Non','Non applicable']} isNew=${true} hint="PCI DSS exige la vidéosurveillance des zones sensibles avec rétention minimum 90 jours." />
+        <${Field} label="Logs & traçabilité" value=${ans.pci_logs} onChange=${function(v){set('pci_logs',v);}} opts=${['SIEM centralisé + rétention 1 an','Logs centralisés','Logs locaux','Non en place','Non applicable']} isNew=${true} />
+      </div>
+      <${Field} label="Dernier audit / scan ASV" value=${ans.pci_dernier_audit} onChange=${function(v){set('pci_dernier_audit',v);}} opts=${['< 3 mois','3–6 mois','6–12 mois','> 12 mois','Jamais réalisé','Non applicable']} isNew=${true} />
+      <div style="margin-top:12px"><${Field} label="Commentaires PCI DSS" value=${ans.pci_commentaires} onChange=${function(v){set('pci_commentaires',v);}} type="textarea" placeholder="Points de non-conformité identifiés, plan de remédiation, prestataire QSA…" isNew=${true} /></div>
+    </div>
+  </div>`;
+}
+function ParkingBlock(p){var ans=p.ans,set=p.set,prefix=p.prefix,title=p.title;
+  var has=ans[prefix+'_places']>0||ans[prefix+'_securise'];
+  return html`<div class="card"><div class="sec-title"><i class="ti ti-car"></i> ${title}</div>
+    <div class="fg fg3">
+      <${Field} label="Nombre de places" value=${ans[prefix+'_places']} onChange=${function(v){set(prefix+'_places',v);}} type="number" placeholder="0" />
+      <${Field} label="Sécurisé" value=${ans[prefix+'_securise']} onChange=${function(v){set(prefix+'_securise',v);}} opts=${['Oui','Non']} />
+      ${ans[prefix+'_securise']==='Oui'?html`<${Field} label="Type de sécurisation" value=${ans[prefix+'_secu_type']} onChange=${function(v){set(prefix+'_secu_type',v);}} opts=${['Barrière automatique','Portail + badge','Portail + digicode','Gardien','Vidéosurveillance','Barrière + vidéo + badge','Autre']} />`:html`<div></div>`}
+    </div>
+    <div class="fg fg3">
+      <${Field} label="Bornes de recharge VE" value=${ans[prefix+'_bornes']} onChange=${function(v){set(prefix+'_bornes',v);}} opts=${['Oui','Non','Pré-câblé']} />
+      ${ans[prefix+'_bornes']==='Oui'?html`<${Field} label="Nombre de bornes" value=${ans[prefix+'_bornes_nb']} onChange=${function(v){set(prefix+'_bornes_nb',v);}} type="number" placeholder="4" />`:html`<div></div>`}
+      ${ans[prefix+'_bornes']==='Oui'?html`<${Field} label="Puissance (kW)" value=${ans[prefix+'_bornes_kw']} onChange=${function(v){set(prefix+'_bornes_kw',v);}} opts=${['3,7 kW (lente)','7,4 kW (normale)','11 kW (accélérée)','22 kW (accélérée+)','50 kW (rapide DC)','150+ kW (ultra-rapide)','Mixte']} />`:html`<div></div>`}
+    </div>
+  </div>`;
+}
+function SectionVieQuotidienne(p){var ans=p.ans,set=p.set;
+  return html`<div>
+    <${ParkingBlock} ans=${ans} set=${set} prefix="pk_in_bat" title="Parking indoor privatif — dans le bâtiment" />
+    <${ParkingBlock} ans=${ans} set=${set} prefix="pk_in_ext" title="Parking indoor privatif — hors bâtiment" />
+    <${ParkingBlock} ans=${ans} set=${set} prefix="pk_out_bat" title="Parking outdoor privatif — dans le bâtiment" />
+    <${ParkingBlock} ans=${ans} set=${set} prefix="pk_out_ext" title="Parking outdoor privatif — hors bâtiment" />
+    <div class="card"><div class="sec-title"><i class="ti ti-parking"></i> ${tl('Parking public')}</div>
+      <${Field} label="Places publiques disponibles à proximité" value=${ans.pk_public_places} onChange=${function(v){set('pk_public_places',v);}} type="number" placeholder="50" />
+    </div>
+    <div class="card"><div class="sec-title"><i class="ti ti-soup"></i> ${tl('Restauration')}</div>
+      <${Field} label="Restaurant d'entreprise" value=${ans.resto_entreprise} onChange=${function(v){set('resto_entreprise',v);}} opts=${['Oui — dédié (mono-entreprise)','Oui — interentreprises dans le bâtiment','Oui — interentreprises à proximité','Non']} />
+      ${ans.resto_entreprise&&ans.resto_entreprise.indexOf('proximité')>=0?html`<div style="margin-top:12px"><${Field} label="Distance du restaurant (m)" value=${ans.resto_distance} onChange=${function(v){set('resto_distance',v);}} type="number" placeholder="200" /></div>`:null}
+      <div style="margin-top:12px" class="fg fg2">
+        <${Field} label="Frigos connectés" value=${ans.frigo_connecte} onChange=${function(v){set('frigo_connecte',v);}} opts=${['Oui — installés','Oui — possibilité d\'installation','Non','À étudier']} />
+        <${Field} label="Food truck" value=${ans.food_truck} onChange=${function(v){set('food_truck',v);}} opts=${['Oui — présent régulièrement','Oui — emplacement disponible','Non — pas d\'espace','Non autorisé (règlement)']} />
+      </div>
+      <div class="fg fg2">
+        <${Field} label="Espace frigo + micro-ondes" value=${ans.frigo_microonde} onChange=${function(v){set('frigo_microonde',v);}} opts=${['Oui — équipé','Oui — à équiper','Non — pas d\'espace dédié']} />
+      </div>
+      <div style="margin-top:12px"><${MultiSelect} label="Offre de restauration à proximité (< 500 m)" value=${ans.resto_proximite||[]} onChange=${function(v){set('resto_proximite',v);}} opts=${['Boulangerie / Sandwicherie','Restaurant traditionnel','Fast food / Chaîne','Sushi / Asiatique','Italien / Pizza','Saladerie / Healthy','Cafétéria / Coffee shop','Supermarché / épicerie','Marché / marché couvert','Dark kitchen / livraison','Aucune offre à proximité']} /></div>
+    </div>
+    <div class="card"><div class="sec-title"><i class="ti ti-bike"></i> ${tl('Abris vélos & mobilité douce')}</div>
+      <${Field} label="Pistes cyclables à proximité" value=${ans.pistes_cyclables} onChange=${function(v){set('pistes_cyclables',v);}} opts=${['Oui — accès direct','Oui — < 200 m','Oui — < 500 m','Non']} />
+      <div style="margin-top:12px;font-size:11px;color:var(--text2);margin-bottom:8px;font-weight:600">Abri vélos privatif (dans le bâtiment / parcelle) :</div>
+      <div class="fg fg3">
+        <${Field} label="Type" value=${ans.velo_priv_type} onChange=${function(v){set('velo_priv_type',v);}} opts=${['Local fermé intérieur','Local fermé extérieur','Abri couvert extérieur','Arceaux extérieurs','Aucun','Possible (espace disponible)']} />
+        <${Field} label="Sécurisé" value=${ans.velo_priv_securise} onChange=${function(v){set('velo_priv_securise',v);}} opts=${['Oui — badge / clé + vidéo','Oui — badge / clé','Non sécurisé','Non applicable']} />
+        <${Field} label="Capacité (places)" value=${ans.velo_priv_capacite} onChange=${function(v){set('velo_priv_capacite',v);}} type="number" placeholder="20" />
+      </div>
+      <div style="margin-top:12px;font-size:11px;color:var(--text2);margin-bottom:8px;font-weight:600">Abri vélos à proximité (public / mutualisé) :</div>
+      <div class="fg fg3">
+        <${Field} label="Type" value=${ans.velo_prox_type} onChange=${function(v){set('velo_prox_type',v);}} opts=${['Station vélos en libre-service','Abri sécurisé (Véligo, etc.)','Arceaux voirie','Parking vélos couvert','Aucun à proximité']} />
+        <${Field} label="Distance (m)" value=${ans.velo_prox_distance} onChange=${function(v){set('velo_prox_distance',v);}} type="number" placeholder="100" />
+        <${Field} label="Capacité estimée" value=${ans.velo_prox_capacite} onChange=${function(v){set('velo_prox_capacite',v);}} opts=${['< 10 places','10–30 places','30–50 places','> 50 places','Inconnu']} />
+      </div>
+      <div style="margin-top:12px" class="fg fg2">
+        <${Field} label="Vestiaires / casiers cyclistes" value=${ans.vestiaires_cyclistes} onChange=${function(v){set('vestiaires_cyclistes',v);}} opts=${['Oui — vestiaires + casiers','Oui — casiers seuls','Non','Possible (espace disponible)']} />
+        <${Field} label="Autopartage / covoiturage" value=${ans.autopartage} onChange=${function(v){set('autopartage',v);}} opts=${['Autopartage sur site','Covoiturage organisé','Les deux','Bornes libre-service à proximité','Non']} />
+      </div>
+    </div>
+    <div class="card"><div class="sec-title"><i class="ti ti-armchair"></i> ${tl('Confort & bien-être')}</div>
+      <div class="fg fg2">
+        <${Field} label="Espace détente intérieur" value=${ans.detente_interieur} onChange=${function(v){set('detente_interieur',v);}} opts=${['Oui — aménagé','Oui — à aménager','Non','Possible (espace disponible)']} />
+        <${Field} label="Espace détente extérieur" value=${ans.detente_exterieur} onChange=${function(v){set('detente_exterieur',v);}} opts=${['Oui — terrasse / patio','Oui — jardin / parc','Oui — rooftop','Oui — cour intérieure','Non','Possible (espace disponible)']} />
+      </div>
+      <div class="fg fg3">
+        <${Field} label="Douches" value=${ans.douches} onChange=${function(v){set('douches',v);}} opts=${['Oui — Hommes / Femmes séparés','Oui — Mixtes','Oui — PMR inclus','Non','À créer (espace disponible)']} />
+        <${Field} label="Salle de sport / fitness" value=${ans.salle_sport} onChange=${function(v){set('salle_sport',v);}} opts=${['Oui — dans le bâtiment','Oui — dans la résidence / campus','Partenariat salle à proximité','Non','Possible (espace disponible)']} />
+        <${Field} label="Conciergerie" value=${ans.conciergerie} onChange=${function(v){set('conciergerie',v);}} opts=${['Oui — physique sur site','Oui — digitale (app)','Oui — physique + digitale','Non','Prévue']} />
+      </div>
+    </div>
+  </div>`;
+}
+function SectionCoworking(p){var ans=p.ans,set=p.set;
+  var enabled=ans.cw_active==='Oui';
+  var dim=enabled?{}:{opacity:0.35,pointerEvents:'none'};
+  return html`<div>
+    <div class="card"><div class="sec-title"><i class="ti ti-users"></i> ${tl('Coworking concerné ?')}</div>
+      <div class="fg fg2">
+        ${['Oui','Non'].map(function(opt){
+          var sel=ans.cw_active===opt;
+          return html`<div key=${opt} style=${'padding:12px;border-radius:var(--r2);border:1.5px solid '+(sel?(opt==='Oui'?'var(--green)':'var(--red)'):'var(--border2)')+';background:'+(sel?(opt==='Oui'?'rgba(29,158,117,.12)':'rgba(226,75,74,.08)'):'transparent')+';cursor:pointer;text-align:center;font-size:13px;font-weight:600;color:'+(sel?'var(--text)':'var(--text3)')} onClick=${function(){set('cw_active',opt);}}>
+            ${opt==='Oui'?t('yes_coworking'):t('no_coworking')}
+          </div>`;
+        })}
+      </div>
+    </div>
+    <div style=${dim}>
+      <div class="card"><div class="sec-title"><i class="ti ti-door"></i> ${tl('Espaces')}</div>
+        <div class="fg fg2">
+          <${Field} label="Privatifs" value=${ans.cw_espaces_privatifs} onChange=${function(v){set('cw_espaces_privatifs',v);}} opts=${['Oui','Non','À vérifier']} isNew=${true} />
+          <${Field} label="Bureaux fermés" value=${ans.cw_nb_bureaux_fermes} onChange=${function(v){set('cw_nb_bureaux_fermes',v);}} type="number" placeholder="8" isNew=${true} />
+        </div>
+        <div class="fg fg3">
+          <${Field} label="Salles réunion" value=${ans.cw_nb_salles_reunion} onChange=${function(v){set('cw_nb_salles_reunion',v);}} type="number" placeholder="3" isNew=${true} />
+          <${Field} label="Open space" value=${ans.cw_postes_open_space} onChange=${function(v){set('cw_postes_open_space',v);}} type="number" placeholder="40" isNew=${true} />
+          <${Field} label="Durée min" value=${ans.cw_duree_min} onChange=${function(v){set('cw_duree_min',v);}} opts=${['1 heure','1 journée','1 semaine','1 mois','3 mois']} isNew=${true} />
+        </div></div>
+      <div class="card"><div class="sec-title"><i class="ti ti-clock"></i> ${tl('Accès')}</div>
+        <${Field} label="Horaires" value=${ans.cw_heures_acces} onChange=${function(v){set('cw_heures_acces',v);}} opts=${['9h-18h','Étendu','24h/24','Sur réservation']} isNew=${true} />
+        <div style="margin-top:12px"><${MultiSelect} label="Services" value=${ans.cw_services_inclus||[]} onChange=${function(v){set('cw_services_inclus',v);}} opts=${['Wifi','Café','Impression','Réception','Casier','Nettoyage']} isNew=${true} /></div>
+        <div style="margin-top:12px"><${Stars} label="Qualité coworking" value=${ans.cw_score} onChange=${function(v){set('cw_score',v);}} isNew=${true} /></div></div>
+    </div>
+  </div>`;
+}
+function SectionJuridique(p){var ans=p.ans,set=p.set;
+  var cd=getCountryData(ans);
+  var leaseOpts=cd?cd.leases:['Bail 3/6/9','Bail commercial','Bail dérogatoire','Vente','Copropriété'];
+  return html`<div>
+    ${cd?html`<div class="card" style="border-color:var(--accent);background:rgba(108,99,255,.05)"><div class="sec-title"><i class="ti ti-info-circle"></i> ${tl('Cadre réglementaire')} — ${cd.label}</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.6">${cd.norms}</div>
+    </div>`:null}
+    <div class="card"><div class="sec-title"><i class="ti ti-scale"></i> ${tl('Bail')}${cd?html` <span style="font-size:10px;color:var(--accent2);text-transform:none;letter-spacing:0;font-weight:400">(${cd.label})</span>`:null}</div>
+      <div class="fg fg2">
+        <${Field} label="Statut / type de bail" value=${ans.statut_juridique} onChange=${function(v){set('statut_juridique',v);}} opts=${leaseOpts} />
+        <${Field} label="Durée" value=${ans.duree_bail} onChange=${function(v){set('duree_bail',v);}} opts=${['< 1 an','1–2 ans','3–6 ans','6–9 ans','> 9 ans']} />
+      </div>
+      <div class="fg fg2">
+        <${Field} label="Franchise" value=${ans.franchise_loyer} onChange=${function(v){set('franchise_loyer',v);}} opts=${['Oui','Non','À négocier']} />
+        <${Field} label="Valeur vénale (€)" value=${ans.valeur_venale} onChange=${function(v){set('valeur_venale',v);}} type="number" placeholder="2000000" />
+      </div></div>
+    <div class="card"><div class="sec-title"><i class="ti ti-user-dollar"></i> ${tl('Bailleur & gestion')} <span class="new-bdg">${currentLang==='fr'?'Nouveau':'New'}</span></div>
+      <${Field} label="Type de bailleur" value=${ans.type_bailleur} onChange=${function(v){set('type_bailleur',v);}} opts=${['Particulier','SCI familiale','Foncière cotée (SIIC/REIT)','Fonds d\'investissement','Assureur / Mutuelle','Caisse de retraite','Promoteur','Collectivité publique','Établissement public','Family office','SCPI / OPCI','Autre institutionnel']} isNew=${true} />
+      <div style="margin-top:12px" class="fg fg2">
+        <${Field} label="Property Manager" value=${ans.property_manager} onChange=${function(v){set('property_manager',v);}} opts=${['Oui','Non','Géré en direct par le bailleur','À déterminer']} isNew=${true} />
+        <${Field} label="Nom du Property Manager" value=${ans.property_manager_nom} onChange=${function(v){set('property_manager_nom',v);}} placeholder="Ex : CBRE, JLL, BNP Paribas RE, Cushman…" isNew=${true} />
+      </div></div>
+    <div class="card"><div class="sec-title"><i class="ti ti-receipt"></i> ${tl('Finances')}</div>
+      <div class="fg fg3">
+        <${Field} label="Loyer (€/m²/an)" value=${ans.loyer_annuel} onChange=${function(v){set('loyer_annuel',v);}} type="number" placeholder="400" />
+        <${Field} label="Charges copro" value=${ans.charges_copro} onChange=${function(v){set('charges_copro',v);}} type="number" placeholder="60" />
+        <${Field} label="Taxe foncière (€/an)" value=${ans.taxe_fonciere} onChange=${function(v){set('taxe_fonciere',v);}} type="number" placeholder="15000" />
+      </div></div>
+    <div class="card"><div class="sec-title"><i class="ti ti-calculator"></i> ${tl("Coûts d'occupation (TCO)")}</div>
+      <div class="fg fg3">
+        <${Field} label="Charges récupérables (€/m²/an)" value=${ans.charges_recup} onChange=${function(v){set('charges_recup',v);}} type="number" placeholder="80" />
+        <${Field} label="Charges non récupérables (€/m²/an)" value=${ans.charges_non_recup} onChange=${function(v){set('charges_non_recup',v);}} type="number" placeholder="15" />
+        <${Field} label="TEOM (€/an)" value=${ans.teom} onChange=${function(v){set('teom',v);}} type="number" placeholder="3000" />
+      </div>
+      <div class="fg fg3">
+        <${Field} label="CFE estimée (€/an)" value=${ans.cfe} onChange=${function(v){set('cfe',v);}} type="number" placeholder="5000" />
+        <${Field} label="Coût aménagement estimé (€/m²)" value=${ans.cout_amenagement} onChange=${function(v){set('cout_amenagement',v);}} type="number" placeholder="350" hint="Aménagement plateau : 200–500 €/m² selon niveau de finition." />
+        <${Field} label="Budget travaux estimé (€)" value=${ans.budget_travaux} onChange=${function(v){set('budget_travaux',v);}} type="number" placeholder="150000" />
+      </div>
+    </div>
+  </div>`;
+}
+function SectionActivite(p){var ans=p.ans,set=p.set;
+  return html`<div>
+    <div class="card"><div class="sec-title"><i class="ti ti-users"></i> ${tl('Capacité')}</div>
+      <div class="fg fg2">
+        <${Field} label="Capacité (pers.)" value=${ans.capacite_accueil} onChange=${function(v){set('capacite_accueil',v);}} type="number" placeholder="100" />
+        <${Field} label="Voisinage" value=${ans.voisinage} onChange=${function(v){set('voisinage',v);}} opts=${["Quartier d'affaires",'Zone mixte','Résidentiel','Zone industrielle']} />
+      </div>
+      <${Field} label="Nuisances" value=${ans.nuisances} onChange=${function(v){set('nuisances',v);}} type="textarea" placeholder="Bruit, odeurs…" />
+      <div style="margin-top:12px"><${Stars} label="Extension" value=${ans.expansion_possible} onChange=${function(v){set('expansion_possible',v);}} /></div></div>
+    <div class="card"><div class="sec-title"><i class="ti ti-alert-octagon"></i> ${tl('Risques business')}</div>
+      <div class="fg fg2">
+        <${Field} label="Dépendance mono-accès" value=${ans.mono_acces} onChange=${function(v){set('mono_acces',v);}} opts=${['Non — multi-accès','Oui — axe routier unique','Oui — transport unique','À évaluer']} hint="Un seul axe d\'accès = vulnérabilité en cas de blocage, travaux ou incident." />
+        <${Field} label="Risques climatiques futurs (2050)" value=${ans.risques_climat_2050} onChange=${function(v){set('risques_climat_2050',v);}} opts=${['Faibles','Modérés (canicules)','Élevés (inondation / submersion)','Très élevés','Non évalués']} />
+      </div>
+      <div class="fg fg2">
+        <${Field} label="PCA / PRA existant sur le site" value=${ans.pca_pra} onChange=${function(v){set('pca_pra',v);}} opts=${['Oui — testé','Oui — non testé','Non','À mettre en place']} hint="Plan de Continuité / Reprise d\'Activité." />
+        <${Field} label="Zone de sécurité prioritaire (ZSP)" value=${ans.zsp} onChange=${function(v){set('zsp',v);}} opts=${['Non','Oui','Limitrophe','À vérifier']} />
+      </div>
+    </div>
+    <div class="card"><div class="sec-title"><i class="ti ti-chart-bar"></i> ${tl('Score')}</div>
+      <${Stars} label="Score global" value=${ans.score_global} onChange=${function(v){set('score_global',v);}} />
+      <div style="margin-top:12px"><${Field} label="Commentaires" value=${ans.commentaires} onChange=${function(v){set('commentaires',v);}} type="textarea" /></div></div>
+  </div>`;
+}
+
+var RENDERERS={localisation:SectionLocalisation,foncier:SectionFoncier,batiment:SectionBatiment,energie:SectionEnergie,reseaux:SectionReseaux,securite:SectionSecurite,viequotidienne:SectionVieQuotidienne,coworking:SectionCoworking,juridique:SectionJuridique,activite:SectionActivite};
+
+function ReportView(p){
+  var project=p.project,ans=p.ans,rl=p.lang||currentLang;
+  var sc=scoreGlobal(ans),scColor=sc>=70?'#1D9E75':sc>=45?'#BA7517':'#E24B4A';
+  var scLabel=sc>=70?(I18N.favorable[rl]||'Favorable'):sc>=45?(I18N.mixed[rl]||'Mitigé'):(I18N.unfavorable[rl]||'Défavorable');
+  var filled=Object.values(ans).filter(isAnswered).length,alerts=computeAlerts(ans);
+  var locale={fr:'fr-FR',en:'en-GB',de:'de-DE',es:'es-ES',it:'it-IT',pt:'pt-PT',nl:'nl-NL'}[rl]||'fr-FR';
+  var today=new Date().toLocaleDateString(locale,{day:'2-digit',month:'long',year:'numeric'});
+  return html`<div class="rpt-wrap">
+    <div class="rpt-hdr">
+      <div class="rpt-eyebrow">${I18N.report_title[rl]||I18N.report_title.fr}</div>
+      <div class="rpt-name">${project.name||(I18N.no_name[rl]||'Sans titre')}</div>
+      <div class="rpt-meta">${[(Array.isArray(project.activity)?project.activity.join(', '):project.activity),project.support,today].filter(Boolean).join('  ·  ')}</div>
+      <div class="rpt-kpi-row">
+        <div class="rpt-kpi"><div class="rpt-kpi-v" style=${'color:'+scColor}>${sc}%</div><div class="rpt-kpi-l" style=${'color:'+scColor}>${scLabel}</div></div>
+        <div class="rpt-kpi"><div class="rpt-kpi-v" style="color:#378ADD">${filled}</div><div class="rpt-kpi-l">${I18N.fields_filled[rl]||'champs'}</div></div>
+        <div class="rpt-kpi"><div class="rpt-kpi-v" style=${'color:'+(alerts.length?'#BA7517':'#1D9E75')}>${alerts.length}</div><div class="rpt-kpi-l">${I18N.alerts[rl]||'alertes'}</div></div>
+      </div>
+    </div>
+    ${alerts.length>0?html`<div class="rpt-alerts">
+      <div class="rpt-alerts-title"><i class="ti ti-alert-triangle"></i> ${I18N.alerts[rl]||"Points d'attention"}</div>
+      ${alerts.map(function(a,i){return html`<div key=${i} class="rpt-alert"><i class="ti ti-point-filled"></i><span>${a}</span></div>`;})}
+    </div>`:null}
+    ${SECTIONS.map(function(sec){
+      var qs=REPORT_SECTIONS[sec.id]||[],rows=qs.filter(function(q){return isAnswered(ans[q.key]);});
+      if(!rows.length)return null;
+      var secName=I18N['sec_'+sec.id]?I18N['sec_'+sec.id][rl]||sec.label:sec.label;
+      return html`<div key=${sec.id} class="rpt-section">
+        <div class="rpt-sec-hd" style=${'background:'+sec.color}><i class=${'ti '+sec.icon}></i>${secName}</div>
+        ${rows.map(function(q){return html`<div key=${q.key} class="rpt-row"><span class="rpt-k">${q.label}${q.isNew?html`<span class="new-bdg">N</span>`:null}</span><span class="rpt-v">${fmtAns(ans[q.key],q.label.indexOf('/5')>=0)}</span></div>`;})}
+      </div>`;
+    })}
+    <div style="margin-top:20px;padding-top:12px;border-top:.5px solid var(--border);font-size:11px;color:var(--text3);text-align:center">Audit — ${today} · ${I18N.confidential[rl]||'Confidentiel'}</div>
+    <div style="margin-top:8px;font-size:9px;color:var(--text3);text-align:center;opacity:.6">© Antoine Bouvier 2016</div>
+  </div>`;
+}
+
+// ─── Map helpers ───────────────────────────────────────────────
+var SITE_COLORS=['#378ADD','#E24B4A','#1D9E75'];
+var POI_ICONS={
+  bus_stop:'<path d="M4 16V6a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v10m-16 0h16m-16 0v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-2m8 0v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-2M7 12h10M7 8h10"/>',
+  subway:'<path d="M4 17V7a5 5 0 0 1 5-5h6a5 5 0 0 1 5 5v10m-16 0a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2m-16 0h16M6 21l-2 3m14-3 2 3M9 12h6M9 8h6M9 16h.01M15 16h.01"/>',
+  tram_stop:'<path d="M4 17V7a5 5 0 0 1 5-5h6a5 5 0 0 1 5 5v10m-16 0h16m-16 0l-2 3m18-3 2 3M12 2V0M8 12h8M8 8h8M9 16h.01M15 16h.01"/>',
+  train_station:'<path d="M4 15V7a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v8a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3zm3 6 2-3m8 3-2-3M9 12h6M9 7h6M9 17h.01M15 17h.01"/>',
+  airport:'<path d="M15 12h5a2 2 0 0 1 0 4h-5l-5 6H8l3-6H6l-2 3H2l2-5L2 9h2l2 3h5L8 6h2l5 6z"/>',
+  parking:'<path d="M3 3h18v18H3z"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9" fill="none"/>'
+};
+var POI_CONFIG={
+  bus_stop:{label:'Arrêts bus',color:'#F39C12',query:'node["highway"="bus_stop"]',radius:1500,max:15,size:22},
+  subway:{label:'Métro',color:'#9B59B6',query:'node["station"="subway"]',radius:2000,max:20,size:26},
+  tram_stop:{label:'Tramway',color:'#1ABC9C',query:'node["railway"="tram_stop"]',radius:2000,max:20,size:24},
+  train_station:{label:'Gares',color:'#E74C3C',query:'node["railway"="station"]["station"!="subway"]',radius:8000,max:10,size:30},
+  airport:{label:'Aéroports',color:'#2C3E50',query:'nwr["aeroway"="aerodrome"]["iata"]',radius:60000,max:10,size:34},
+  parking:{label:'Parkings',color:'#7F8C8D',query:'node["amenity"="parking"]',radius:1000,max:10,size:20}
+};
+
+function geocodeAddress(address){
+  return fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(address),{headers:{'Accept-Language':'fr'}})
+    .then(function(r){return r.json();})
+    .then(function(data){if(!data.length)throw new Error('Address not found');return{lat:parseFloat(data[0].lat),lng:parseFloat(data[0].lon),display:data[0].display_name};});
+}
+
+function queryOverpass(lat,lng){
+  var queries=Object.keys(POI_CONFIG).map(function(k){
+    var c=POI_CONFIG[k];
+    return c.query+'(around:'+c.radius+','+lat+','+lng+');';
+  });
+  var q='[out:json][timeout:25];('+queries.join('')+');out center 200;';
+  return fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:'data='+encodeURIComponent(q),headers:{'Content-Type':'application/x-www-form-urlencoded'}})
+    .then(function(r){return r.json();})
+    .then(function(data){
+      var results={};
+      Object.keys(POI_CONFIG).forEach(function(k){results[k]=[];});
+      (data.elements||[]).forEach(function(el){
+        var elLat=el.lat||(el.center&&el.center.lat);
+        var elLng=el.lon||(el.center&&el.center.lon);
+        if(!elLat||!elLng)return;
+        var t=el.tags||{};
+        var cat=null;
+        if(t.highway==='bus_stop')cat='bus_stop';
+        else if(t.station==='subway')cat='subway';
+        else if(t.railway==='tram_stop')cat='tram_stop';
+        else if(t.railway==='station'&&t.station!=='subway')cat='train_station';
+        else if(t.aeroway==='aerodrome')cat='airport';
+        else if(t.amenity==='parking')cat='parking';
+        if(cat)results[cat].push({lat:elLat,lng:elLng,name:t.name||t.description||''});
+      });
+      return results;
+    });
+}
+
+function createPoiIcon(cat){
+  var c=POI_CONFIG[cat];
+  var sz=c.size;
+  var svgIcon=POI_ICONS[cat]||'';
+  var svgHtml='<div style="width:'+sz+'px;height:'+sz+'px;display:flex;align-items:center;justify-content:center;background:'+c.color+';border-radius:'+(cat==='parking'?'4px':'50%')+';border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)">'
+    +'<svg xmlns="http://www.w3.org/2000/svg" width="'+(sz-8)+'" height="'+(sz-8)+'" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+svgIcon+'</svg></div>';
+  return L.divIcon({className:'',html:svgHtml,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2],popupAnchor:[0,-sz/2]});
+}
+
+function createSiteIcon(color){
+  var sz=28;
+  var pin='<div style="position:relative;width:'+sz+'px;height:'+(sz+8)+'px">'
+    +'<div style="width:'+sz+'px;height:'+sz+'px;border-radius:50% 50% 50% 0;background:'+color+';border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4);transform:rotate(-45deg);display:flex;align-items:center;justify-content:center">'
+    +'<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg)"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'
+    +'</div></div>';
+  return L.divIcon({className:'',html:pin,iconSize:[sz,sz+8],iconAnchor:[sz/2,sz+8],popupAnchor:[0,-(sz+8)]});
+}
+
+function CompareMap(p){
+  var audits=p.audits;
+  var st=useState('loading'),status=st[0],setStatus=st[1];
+  var er=useState(null),error=er[0],setError=er[1];
+  var mapRef={current:null};
+  var mapId='cmp-map-'+audits.map(function(a){return a.id.slice(0,4);}).join('-');
+
+  useEffect(function(){
+    var addresses=audits.map(function(a){return a.answers.adresse;}).filter(Boolean);
+    if(addresses.length<2){setStatus('error');setError('Il faut au moins 2 adresses renseignées pour afficher la carte.');return;}
+
+    var mapEl=document.getElementById(mapId);
+    if(!mapEl)return;
+    if(mapRef.current){mapRef.current.remove();mapRef.current=null;}
+
+    var map=L.map(mapId,{zoomControl:true});
+    mapRef.current=map;
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:18}).addTo(map);
+
+    var allCoords=[];
+    var pending=audits.length;
+
+    audits.forEach(function(audit,idx){
+      var addr=audit.answers.adresse;
+      if(!addr){pending--;if(!pending)finalize();return;}
+
+      geocodeAddress(addr).then(function(geo){
+        allCoords.push([geo.lat,geo.lng]);
+        L.marker([geo.lat,geo.lng],{icon:createSiteIcon(SITE_COLORS[idx]||'#378ADD'),zIndexOffset:1000}).addTo(map)
+          .bindPopup('<b style="font-size:13px">'+(audit.project.name||'Site '+(idx+1))+'</b><br><span style="font-size:11px;color:#666">'+geo.display+'</span>');
+
+        return queryOverpass(geo.lat,geo.lng);
+      }).then(function(pois){
+        if(!pois)return;
+        Object.keys(pois).forEach(function(cat){
+          var conf=POI_CONFIG[cat];
+          var items=pois[cat];
+          items.slice(0,conf.max).forEach(function(poi){
+            L.marker([poi.lat,poi.lng],{icon:createPoiIcon(cat),zIndexOffset:cat==='airport'?500:100}).addTo(map)
+              .bindPopup('<div style="font-size:12px;min-width:120px"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><div style="width:8px;height:8px;border-radius:50%;background:'+conf.color+'"></div><b>'+conf.label+'</b></div>'+(poi.name?'<div style="color:#666">'+poi.name+'</div>':'')+'</div>');
+          });
+        });
+      }).catch(function(e){
+        console.warn('Geocode/Overpass error for',addr,e);
+      }).finally(function(){
+        pending--;
+        if(!pending)finalize();
+      });
+    });
+
+    function finalize(){
+      setStatus('ready');
+      setTimeout(function(){
+        map.invalidateSize();
+        if(allCoords.length>=2){
+          map.fitBounds(allCoords,{padding:[50,50],maxZoom:13});
+        } else if(allCoords.length===1){
+          map.setView(allCoords[0],13);
+        }
+      },100);
+    }
+
+    return function(){if(mapRef.current){mapRef.current.remove();mapRef.current=null;}};
+  },[]);
+
+  if(error)return html`<div class="cmp-map-error"><i class="ti ti-alert-triangle"></i> ${error}</div>`;
+
+  return html`<div class="cmp-map-wrap">
+    ${status==='loading'?html`<div class="cmp-map-loading"><i class="ti ti-loader" style="animation:spin 1s linear infinite;margin-right:8px"></i> Chargement de la carte…</div>`:null}
+    <div id=${mapId} class="cmp-map" style=${'display:'+(status==='ready'?'block':'none')}></div>
+    ${status==='ready'?html`<div class="cmp-legend">
+      ${audits.map(function(a,i){return html`<div key=${a.id} class="cmp-legend-item"><div class="cmp-legend-dot" style=${'background:'+(SITE_COLORS[i]||'#378ADD')}></div><b>${a.project.name||t('no_name')}</b></div>`;})}
+      <span style="color:var(--border2)">|</span>
+      ${Object.keys(POI_CONFIG).map(function(k){var c=POI_CONFIG[k];return html`<div key=${k} class="cmp-legend-item"><div class="cmp-legend-dot" style=${'background:'+c.color+';display:flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:'+(k==='parking'?'3px':'50%')} dangerouslySetInnerHTML=${{__html:'<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">'+POI_ICONS[k]+'</svg>'}}></div>${c.label}</div>`;})}
+    </div>`:null}
+  </div>`;
+}
+
+function CompareView(p){
+  var audits=p.audits,onBack=p.onBack;
+  var rows=[];
+  SECTIONS.forEach(function(sec){
+    var qs=REPORT_SECTIONS[sec.id]||[];
+    var filled=qs.filter(function(q){return audits.some(function(a){return isAnswered(a.answers[q.key]);});});
+    if(!filled.length)return;
+    rows.push({type:'header',sec:sec});
+    filled.forEach(function(q){rows.push({type:'data',q:q});});
+  });
+  return html`<div class="cmp-wrap">
+    <div class="print-hide" style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+      <button class="btn" onClick=${onBack}><i class="ti ti-arrow-left"></i> ${t('back')}</button>
+      <h2 style="font-size:16px;font-weight:700;margin:0">${t('comparison_of')} ${audits.length} ${t('audits_word')}</h2>
+      <div style="flex:1"></div>
+      <button class="btn btn-primary" onClick=${function(){window.print();}}><i class="ti ti-printer"></i> ${t('print_pdf')}</button>
+    </div>
+    <div class="print-only" style="display:none;margin-bottom:16px">
+      <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#888;margin-bottom:4px">${t('comparison_of')} ${audits.length} ${t('audits_word')}</div>
+      <div style="font-size:18px;font-weight:700">${audits.map(function(a){return a.project.name||t('no_name');}).join(' vs ')}</div>
+      <div style="font-size:11px;color:#888;margin-top:4px">${new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})}</div>
+    </div>
+    <div class="rpt-kpi-row" style="margin-bottom:20px">
+      ${audits.map(function(a){return html`<div key=${a.id} class="rpt-kpi"><div class="rpt-kpi-v" style=${'color:'+(a.score>=70?'#1D9E75':a.score>=45?'#BA7517':'#E24B4A')+';font-size:22px'}>${a.score}%</div><div class="rpt-kpi-l">${a.project.name||t('no_name')}</div></div>`;})}
+    </div>
+    <${CompareMap} audits=${audits} />
+    <table class="cmp-table"><thead><tr><th>${t('criterion')}</th>${audits.map(function(a){return html`<th key=${a.id}>${a.project.name||t('no_name')}</th>`;})}</tr></thead>
+    <tbody>${rows.map(function(r,i){
+      if(r.type==='header') return html`<tr key=${'h'+i} class="cmp-sec-row"><td colSpan=${audits.length+1} style=${'color:'+r.sec.color}><i class=${'ti '+r.sec.icon}></i> ${tSec(r.sec.id)}</td></tr>`;
+      return html`<tr key=${'d'+i}><td>${r.q.label}</td>${audits.map(function(a){return html`<td key=${a.id}>${fmtAns(a.answers[r.q.key],r.q.label.indexOf('/5')>=0)}</td>`;})}</tr>`;
+    })}</tbody></table>
+    <div style="margin-top:20px;font-size:9px;color:var(--text3);text-align:center;opacity:.6">© Antoine Bouvier 2016</div>
+  </div>`;
+}
+
+function LangPicker(p){
+  var lang=p.lang,setLang=p.setLang,small=p.small;
+  return html`<div style="display:flex;gap:4px;flex-wrap:wrap">
+    ${Object.keys(LANGS).map(function(k){var l=LANGS[k];var sel=lang===k;
+      return html`<span key=${k} style=${'cursor:pointer;padding:'+(small?'3px 8px':'5px 12px')+';border-radius:20px;font-size:'+(small?'11px':'12px')+';border:1px solid '+(sel?'var(--accent)':'var(--border2)')+';background:'+(sel?'rgba(108,99,255,.15)':'transparent')+';color:'+(sel?'var(--accent2)':'var(--text2)')} onClick=${function(){setLang(k);}}>${l.flag} ${small?'':l.name}</span>`;
+    })}
+  </div>`;
+}
+
+function App(){
+  var ms=useState('landing'),mode=ms[0],setMode=ms[1];
+  var ss=useState('localisation'),section=ss[0],setSection=ss[1];
+  var vs=useState('form'),view=vs[0],setView=vs[1];
+  var ps=useState({name:'',activity:[],support:''}),project=ps[0],setProject=ps[1];
+  var as=useState({}),ans=as[0],setAns=as[1];
+  var ids=useState(''),auditId=ids[0],setAuditId=ids[1];
+  var svs=useState([]),savedAudits=svs[0],setSavedAudits=svs[1];
+  var sls=useState([]),selectedIds=sls[0],setSelectedIds=sls[1];
+  var ls=useState('fr'),lang=ls[0],setLangState=ls[1];
+  var rls=useState('fr'),reportLang=rls[0],setReportLang=rls[1];
+  function setLang(l){currentLang=l;setLangState(l);setReportLang(l);}
+  function setRptLang(l){setReportLang(l);}
+
+  useEffect(function(){setSavedAudits(loadAudits());},[]);
+  var refreshSaved=useCallback(function(){setSavedAudits(loadAudits());},[]);
+  function set(k,v){setAns(function(p){var n=Object.assign({},p);n[k]=v;return n;});}
+  function setP(k,v){setProject(function(p){var n=Object.assign({},p);n[k]=v;return n;});}
+
+  // Auto-save to localStorage whenever answers or project change
+  useEffect(function(){
+    if(!auditId||mode!=='edit')return;
+    var sc=scoreGlobal(ans);
+    var now=new Date().toISOString();
+    var existing=loadAudits().find(function(a){return a.id===auditId;});
+    var audit={id:auditId,project:project,answers:ans,createdAt:existing?existing.createdAt:now,updatedAt:now,score:sc};
+    saveAuditToStorage(audit);
+  },[ans,project,auditId,mode]);
+
+  var allKeys=useMemo(function(){return Object.values(SECTION_KEYS).reduce(function(a,b){return a.concat(b);},[]);},[]);
+  var filledTotal=useMemo(function(){return allKeys.filter(function(k){return isAnswered(ans[k]);}).length;},[ans]);
+  var totalKeys=allKeys.length;
+  function sectionFilled(id){return(SECTION_KEYS[id]||[]).some(function(k){return isAnswered(ans[k]);});}
+  function startNew(){setAuditId(crypto.randomUUID());setProject({name:'',activity:[],support:''});setAns({});setSection('localisation');setView('form');setMode('edit');}
+  function loadItem(a){setAuditId(a.id);setProject(a.project);setAns(a.answers);setSection('localisation');setView('form');setMode('edit');}
+  function handleSave(){exportAuditJson({id:auditId,project:project,answers:ans,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),score:scoreGlobal(ans)});refreshSaved();}
+  function handleDel(id){deleteAuditFromStorage(id);setSelectedIds(function(p){return p.filter(function(x){return x!==id;});});refreshSaved();}
+  function handleImport(){var inp=document.createElement('input');inp.type='file';inp.accept='.json';inp.multiple=true;inp.onchange=function(){if(!inp.files)return;var promises=[];for(var i=0;i<inp.files.length;i++){promises.push(importAuditJson(inp.files[i]).then(saveAuditToStorage).catch(function(){}));}Promise.all(promises).then(refreshSaved);};inp.click();}
+  function toggleSel(id){setSelectedIds(function(p){if(p.indexOf(id)>=0)return p.filter(function(x){return x!==id;});if(p.length>=3)return p;return p.concat([id]);});}
+
+  if(mode==='landing')return html`<div class="au-vars au-landing"><div class="au-landing-inner">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+      <div class="au-landing-title">${t('app_title')}</div>
+      <${LangPicker} lang=${lang} setLang=${setLang} small=${true} />
+    </div>
+    <div class="au-landing-sub">${t('app_sub')}</div>
+    <div class="au-landing-actions">
+      <div class="au-landing-card" onClick=${startNew}><i class="ti ti-plus"></i><span>${t('new_audit')}</span></div>
+      <div class="au-landing-card" onClick=${handleImport}><i class="ti ti-upload"></i><span>${t('import_json')}</span></div>
+    </div>
+    ${savedAudits.length>0?html`<div>
+      <div class="au-saved-title">${t('saved_audits')} (${savedAudits.length})</div>
+      ${savedAudits.map(function(a){var sel=selectedIds.indexOf(a.id)>=0;return html`<div key=${a.id} class=${'au-saved-item'+(sel?' selected':'')}>
+        <div class=${'au-saved-check'+(sel?' checked':'')} onClick=${function(){toggleSel(a.id);}}>${sel?html`<i class="ti ti-check"></i>`:null}</div>
+        <div style="flex:1;cursor:pointer" onClick=${function(){loadItem(a);}}>
+          <div class="au-saved-name">${a.project.name||t('no_name')}</div>
+          <div class="au-saved-meta">${(Array.isArray(a.project.activity)?a.project.activity.join(', '):(a.project.activity||'—'))+' · '+t('score')+' : '+scoreGlobal(a.answers)+'% · '+new Date(a.updatedAt).toLocaleDateString('fr-FR')}</div>
+        </div>
+        <span class="au-saved-del" onClick=${function(){handleDel(a.id);}}><i class="ti ti-trash"></i></span>
+      </div>`;})}
+      ${selectedIds.length>=2?html`<div class="au-compare-bar">
+        <span>${selectedIds.length} ${t('audits_word')} ${t('selected')}</span>
+        <button class="btn btn-primary" onClick=${function(){setMode('compare');}}><i class="ti ti-arrows-diff"></i> ${t('compare')}</button>
+        <button class="btn" onClick=${function(){setSelectedIds([]);}}>${t('cancel')}</button>
+      </div>`:null}
+    </div>`:null}
+    <div style="margin-top:40px;font-size:9px;color:var(--text3);text-align:center;opacity:.6">© Antoine Bouvier 2016</div>
+  </div></div>`;
+
+  if(mode==='compare'){
+    var compareAudits=savedAudits.filter(function(a){return selectedIds.indexOf(a.id)>=0;}).map(function(a){return Object.assign({},a,{score:scoreGlobal(a.answers)});});
+    return html`<div class="au-vars au-wrap" style="display:block">
+      <${CompareView} audits=${compareAudits} onBack=${function(){setMode('landing');setSelectedIds([]);}} />
+    </div>`;
+  }
+
+  var activeSec=SECTIONS.find(function(s){return s.id===section;});
+  var Renderer=RENDERERS[section];
+  var idx=SECTIONS.findIndex(function(s){return s.id===section;});
+  var prev=SECTIONS[idx-1],next=SECTIONS[idx+1];
+
+  function handlePrint(){var prev=currentLang;currentLang=reportLang;setLangState(reportLang);setTimeout(function(){window.print();setTimeout(function(){currentLang=prev;setLangState(prev);},500);},200);}
+
+  return html`<div class="au-vars au-wrap">
+    <aside class="au-side">
+      <div class="au-side-head" style="cursor:pointer" onClick=${function(){setMode('landing');refreshSaved();}}>
+        <div class="au-side-title">${t('app_title')}</div>
+        <div class="au-side-sub" style="display:flex;align-items:center;gap:4px"><i class="ti ti-arrow-left" style="font-size:10px"></i> ${t('back')}</div>
+      </div>
+      <nav class="au-nav">${SECTIONS.map(function(sec){return html`<div key=${sec.id} class=${'au-nav-item'+(section===sec.id&&view==='form'?' active':'')} onClick=${function(){setSection(sec.id);setView('form');}}>
+        <i class=${'ti '+sec.icon} style=${'color:'+sec.color}></i>${tSec(sec.id)}
+        ${sectionFilled(sec.id)?html`<span class="au-nav-dot"></span>`:null}
+      </div>`;})}</nav>
+      <div class="au-progress"><div class="au-prog-hd"><span>${t('completion')}</span><span>${filledTotal} / ${totalKeys}</span></div><div class="au-prog-track"><div class="au-prog-fill" style=${'width:'+Math.round(filledTotal/totalKeys*100)+'%'}></div></div></div>
+      <button class="au-btn-rpt print-hide" onClick=${function(){setView('report');}}><i class="ti ti-file-analytics"></i>${t('generate_report')}</button>
+    </aside>
+    <div class="au-main">
+      <div class="au-head">
+        <div class="au-breadcrumb"><i class="ti ti-home"></i><span style="cursor:pointer" onClick=${function(){setMode('landing');refreshSaved();}}>Home</span><span style="color:var(--border2)">›</span><span>Audit</span>${view==='report'?html`<span style="color:var(--border2)">›</span><span>${t('report_of')}</span>`:null}</div>
+        ${view==='form'?html`<div class="au-section-title"><span class="au-dot" style=${'background:'+activeSec.color}></span>${tSec(activeSec.id)}</div>`
+        :html`<div><div class="au-section-title"><i class="ti ti-file-analytics" style="color:var(--accent2);font-size:18px"></i>${t('report_of')}</div><div class="au-desc">${project.name||t('no_name')} · ${new Date().toLocaleDateString('fr-FR')}</div></div>`}
+      </div>
+      ${view==='form'?html`<div>
+        <div class="au-body">
+          ${section==='localisation'?html`<div class="card"><div class="sec-title"><i class="ti ti-folder"></i> ${tl('Projet')}</div>
+            <div class="fg fg1"><${Field} label="Nom du projet" value=${project.name} onChange=${function(v){setP('name',v);}} placeholder="Ex : Immeuble Opéra" /></div>
+            <${MultiSelect} label="Type(s) d'activité" value=${project.activity||[]} onChange=${function(v){setP('activity',v);}} opts=${['Bureaux / Siège','Bureaux / Agence','Commerce','Showroom','Entrepôt','Datacenter','Hôtel','Restauration','Industrie légère','Coworking','Mixte']} />
+            <div style="margin-top:12px"><${Field} label="Support" value=${project.support} onChange=${function(v){setP('support',v);}} opts=${['Locaux existants','Construction neuve','Réhabilitation','Extension','Déménagement']} /></div>
+          </div>`:null}
+          ${Renderer?html`<${Renderer} ans=${ans} set=${set} />`:null}
+        </div>
+        <div class="au-actions print-hide">
+          ${prev?html`<button class="btn" onClick=${function(){setSection(prev.id);}}><i class="ti ti-arrow-left"></i>${tSec(prev.id)}</button>`:html`<div></div>`}
+          <div style="flex:1"></div>
+          ${next?html`<button class="btn btn-primary" onClick=${function(){setSection(next.id);}}>${tSec(next.id)}<i class="ti ti-arrow-right"></i></button>`
+          :html`<button class="btn btn-primary" onClick=${function(){setView('report');}}><i class="ti ti-file-analytics"></i>${t('generate_report')}</button>`}
+        </div>
+      </div>`:html`<div>
+        <${ReportView} project=${project} ans=${ans} lang=${reportLang} />
+        <div class="au-actions print-hide">
+          <button class="btn" onClick=${function(){setView('form');}}><i class="ti ti-arrow-left"></i>${t('back')}</button>
+          <div style="flex:1"></div>
+          <div style="display:flex;align-items:center;gap:8px;margin-right:8px">
+            <span style="font-size:11px;color:var(--text3)">${t('pdf_lang')} :</span>
+            <${LangPicker} lang=${reportLang} setLang=${setRptLang} small=${true} />
+          </div>
+          <button class="btn" onClick=${handleSave}><i class="ti ti-download"></i>${t('save_export')}</button>
+          <button class="btn btn-primary" onClick=${handlePrint}><i class="ti ti-printer"></i>${t('print_pdf')}</button>
+        </div>
+      </div>`}
+    </div>
+  </div>`;
+}
+
+render(html`<${App} />`, document.getElementById('root'));
+</script>
+</body>
+</html>
