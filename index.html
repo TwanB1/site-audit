@@ -395,7 +395,7 @@ function getCountryCode(ans){
 }
 
 // ─── Schema versioning ──────────────────────────────────────────
-var APP_VERSION = '1.3.4';
+var APP_VERSION = '1.3.5';
 // Increment SCHEMA_VERSION each time new fields are added.
 // Add a migration function in MIGRATIONS keyed by target version.
 var SCHEMA_VERSION = 1;
@@ -1163,6 +1163,7 @@ function CompareMap(p){
   var audits=p.audits;
   var st=useState('loading'),status=st[0],setStatus=st[1];
   var er=useState(null),error=er[0],setError=er[1];
+  var gws=useState([]),geoWarnings=gws[0],setGeoWarnings=gws[1];
   var mapRef={current:null};
   var mapId='cmp-map-'+audits.map(function(a){return a.id.slice(0,4);}).join('-');
 
@@ -1180,19 +1181,24 @@ function CompareMap(p){
 
     var allCoords=[];
     var pending=audits.length;
+    var warnings=[];
 
     // Sequential geocoding — Nominatim requires max 1 req/s
     function processAudit(idx){
       if(idx>=audits.length)return;
       var audit=audits[idx];
       var addr=audit.answers.adresse;
+      var siteName=audit.project.name||('Site '+(idx+1));
       var next=function(){setTimeout(function(){processAudit(idx+1);},1100);};
-      if(!addr){pending--;if(!pending)finalize();next();return;}
+      if(!addr){
+        warnings.push(siteName+' — adresse non renseignée');
+        pending--;if(!pending)finalize();next();return;
+      }
 
       geocodeAddress(addr).then(function(geo){
         allCoords.push([geo.lat,geo.lng]);
         L.marker([geo.lat,geo.lng],{icon:createSiteIcon(SITE_COLORS[idx]||'#378ADD'),zIndexOffset:1000}).addTo(map)
-          .bindPopup('<b style="font-size:13px">'+(audit.project.name||'Site '+(idx+1))+'</b><br><span style="font-size:11px;color:#666">'+geo.display+'</span>');
+          .bindPopup('<b style="font-size:13px">'+siteName+'</b><br><span style="font-size:11px;color:#666">'+geo.display+'</span>');
         return queryOverpass(geo.lat,geo.lng);
       }).then(function(pois){
         if(!pois)return;
@@ -1204,6 +1210,7 @@ function CompareMap(p){
           });
         });
       }).catch(function(e){
+        warnings.push(siteName+' — adresse introuvable : "'+addr+'"');
         console.warn('Geocode/Overpass error for',addr,e);
       }).then(function(){
         pending--;
@@ -1215,6 +1222,7 @@ function CompareMap(p){
 
     function finalize(){
       setStatus('ready');
+      if(warnings.length)setGeoWarnings(warnings);
       setTimeout(function(){
         map.invalidateSize();
         if(allCoords.length>=2){
@@ -1231,6 +1239,11 @@ function CompareMap(p){
   if(error)return html`<div class="cmp-map-error"><i class="ti ti-alert-triangle"></i> ${error}</div>`;
 
   return html`<div class="cmp-map-wrap">
+    ${geoWarnings.length?html`<div class="cmp-map-error" style="margin-bottom:8px">
+      <div style="font-weight:600;margin-bottom:4px"><i class="ti ti-map-pin-off"></i> Sites non localisés sur la carte :</div>
+      ${geoWarnings.map(function(w,i){return html`<div key=${i} style="margin-top:3px;opacity:.9">• ${w}</div>`;})}
+      <div style="margin-top:6px;font-size:10px;opacity:.7">Vérifiez l'adresse dans la fiche du site (ex : "12 rue de la Paix, 75001 Paris")</div>
+    </div>`:null}
     ${status==='loading'?html`<div class="cmp-map-loading"><i class="ti ti-loader" style="animation:spin 1s linear infinite;margin-right:8px"></i> Chargement de la carte…</div>`:null}
     <div id=${mapId} class="cmp-map" style=${'display:'+(status==='ready'?'block':'none')}></div>
     ${status==='ready'?html`<div class="cmp-legend">
