@@ -415,7 +415,7 @@ function spGetDigest(siteUrl){return fetch(siteUrl+'/_api/contextinfo',{method:'
 function spReadAudits(siteUrl,folder){var rel=spServerRelPath(siteUrl,folder);return fetch(siteUrl+"/_api/web/GetFileByServerRelativePath(decodedurl='"+rel+"/audits.json')/$value",{credentials:'include'}).then(function(r){if(r.status===404)return '[]';if(!r.ok)throw new Error('HTTP '+r.status);return r.text();}).then(function(t){return JSON.parse(t);});}
 function spWriteAudits(siteUrl,folder,audits){var rel=spServerRelPath(siteUrl,folder);return spGetDigest(siteUrl).then(function(digest){return fetch(siteUrl+"/_api/web/GetFolderByServerRelativeUrl('"+rel+"')/Files/add(url='audits.json',overwrite=true)",{method:'POST',headers:{'Accept':'application/json;odata=verbose','X-RequestDigest':digest},credentials:'include',body:JSON.stringify(audits)});}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);});}
 function spEnsureFolder(siteUrl,folder){var rel=spServerRelPath(siteUrl,folder);return spGetDigest(siteUrl).then(function(digest){return fetch(siteUrl+'/_api/web/folders',{method:'POST',headers:{'Accept':'application/json;odata=verbose','Content-Type':'application/json;odata=verbose','X-RequestDigest':digest},credentials:'include',body:JSON.stringify({'__metadata':{'type':'SP.Folder'},'ServerRelativeUrl':rel})});}).catch(function(){});}
-function scheduleSPSync(cfg){if(!cfg||!cfg.siteUrl)return;clearTimeout(_spSyncTimer);_spSyncTimer=setTimeout(function(){spWriteAudits(cfg.siteUrl,cfg.folder||'Shared Documents/Site Audit',loadAudits()).catch(function(){});},3000);}
+function scheduleSPSync(cfg){if(!cfg||cfg.mode!=='sharepoint'||!cfg.siteUrl)return;clearTimeout(_spSyncTimer);_spSyncTimer=setTimeout(function(){spWriteAudits(cfg.siteUrl,cfg.folder||'Shared Documents/Site Audit',loadAudits()).catch(function(){});},3000);}
 
 var STORAGE_KEY = 'facilium_audits';
 function loadAudits() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) { return []; } }
@@ -1337,15 +1337,20 @@ function App(){
     </div>
     <div class="au-landing-sub">${t('app_sub')}</div>
     <div class="sp-cfg">
-      <div class="sp-cfg-hd" onClick=${function(){setShowSpCfg(function(v){return !v;});}}>
-        <div class="sp-cfg-title">
-          <div class=${'sp-dot'+(spStatus!=='idle'?' '+spStatus:'')}></div>
-          <i class="ti ti-brand-sharepoint"></i> SharePoint
-          ${spStatus==='ok'?html`<span style="font-size:10px;color:var(--green)">Connecté</span>`:spStatus==='error'?html`<span style="font-size:10px;color:var(--red)">Erreur</span>`:spStatus==='loading'?html`<span style="font-size:10px;color:var(--gold)">Connexion…</span>`:spConfig&&spConfig.siteUrl?html`<span style="font-size:10px;color:var(--text3)">${spConfig.siteUrl}</span>`:html`<span style="font-size:10px;color:var(--text3)">Non configuré — audits locaux uniquement</span>`}
+      <div class="sp-cfg-hd">
+        <div class="sp-cfg-title"><i class="ti ti-database"></i> Stockage</div>
+        <div style="display:flex;gap:6px">
+          <span style=${'cursor:pointer;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid '+(!spConfig||spConfig.mode!=='sharepoint'?'var(--accent)':'var(--border2)')+';background:'+(!spConfig||spConfig.mode!=='sharepoint'?'rgba(108,99,255,.15)':'transparent')+';color:'+(!spConfig||spConfig.mode!=='sharepoint'?'var(--accent2)':'var(--text3)')} onClick=${function(){
+            var cfg=Object.assign({},spConfig||{},{mode:'local'});saveSpConfig(cfg);setSpConfig(cfg);setShowSpCfg(false);
+          }}><i class="ti ti-device-laptop"></i> Local</span>
+          <span style=${'cursor:pointer;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid '+(spConfig&&spConfig.mode==='sharepoint'?'var(--accent)':'var(--border2)')+';background:'+(spConfig&&spConfig.mode==='sharepoint'?'rgba(108,99,255,.15)':'transparent')+';color:'+(spConfig&&spConfig.mode==='sharepoint'?'var(--accent2)':'var(--text3)')} onClick=${function(){
+            var cfg=Object.assign({},spConfig||{},{mode:'sharepoint'});saveSpConfig(cfg);setSpConfig(cfg);setShowSpCfg(true);
+          }}><i class="ti ti-brand-sharepoint"></i> SharePoint
+            ${spConfig&&spConfig.mode==='sharepoint'?html` <span class=${'sp-dot '+(spStatus==='ok'?'ok':spStatus==='error'?'error':spStatus==='loading'?'loading':'')} style="display:inline-block;vertical-align:middle;margin-left:3px"></span>`:null}
+          </span>
         </div>
-        <i class=${'ti '+(showSpCfg?'ti-chevron-up':'ti-chevron-down')} style="font-size:12px;color:var(--text3)"></i>
       </div>
-      ${showSpCfg?html`<div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
+      ${spConfig&&spConfig.mode==='sharepoint'&&showSpCfg?html`<div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
         <div>
           <div style="font-size:10px;color:var(--text3);margin-bottom:4px">URL du site SharePoint</div>
           <input style="width:100%;background:var(--bg);border:.5px solid var(--border2);border-radius:var(--r);padding:7px 10px;font-size:12px;color:var(--text);font-family:var(--sans);outline:none;box-sizing:border-box"
@@ -1361,20 +1366,21 @@ function App(){
             onInput=${function(e){setSpInput(function(p){return Object.assign({},p,{folder:e.target.value});});}} />
         </div>
         ${spStatus==='error'?html`<div style="font-size:11px;color:var(--red);padding:6px 8px;background:rgba(226,75,74,.08);border-radius:var(--r)">${spError}</div>`:null}
+        ${spStatus==='ok'?html`<div style="font-size:11px;color:var(--green);padding:6px 8px;background:rgba(29,158,117,.08);border-radius:var(--r)"><i class="ti ti-check"></i> Connecté — audits synchronisés avec SharePoint</div>`:null}
         <div style="display:flex;gap:8px;margin-top:2px">
           <button class="btn btn-primary" style="flex:1" onClick=${function(){
-            if(!spInput.siteUrl){saveSpConfig(null);setSpConfig(null);setSpStatus('idle');setShowSpCfg(false);return;}
-            var cfg={siteUrl:spInput.siteUrl.replace(/\/$/,''),folder:spInput.folder||'Shared Documents/Site Audit'};
+            if(!spInput.siteUrl){setSpStatus('error');setSpError('Veuillez saisir une URL.');return;}
+            var cfg={mode:'sharepoint',siteUrl:spInput.siteUrl.replace(/\/$/,''),folder:spInput.folder||'Shared Documents/Site Audit'};
             setSpStatus('loading');
             spEnsureFolder(cfg.siteUrl,cfg.folder).then(function(){return spReadAudits(cfg.siteUrl,cfg.folder);})
               .then(function(list){
                 list.forEach(function(a){saveAuditToStorage(migrateAudit(a));});
-                saveSpConfig(cfg);setSpConfig(cfg);refreshSaved();setSpStatus('ok');setShowSpCfg(false);
+                saveSpConfig(cfg);setSpConfig(cfg);refreshSaved();setSpStatus('ok');
               }).catch(function(e){setSpStatus('error');setSpError(e.message||'Erreur de connexion');});
           }}>
             ${spStatus==='loading'?html`<i class="ti ti-loader-2" style="animation:spin .8s linear infinite"></i> `:html`<i class="ti ti-plug"></i> `}Connecter
           </button>
-          ${spConfig&&spConfig.siteUrl?html`<button class="btn" onClick=${function(){saveSpConfig(null);setSpConfig(null);setSpStatus('idle');setSpInput({siteUrl:'',folder:'Shared Documents/Site Audit'});}}>Déconnecter</button>`:null}
+          <button class="btn" onClick=${function(){setShowSpCfg(false);}}>Réduire</button>
         </div>
       </div>`:null}
     </div>
