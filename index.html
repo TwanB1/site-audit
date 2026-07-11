@@ -395,7 +395,7 @@ function getCountryCode(ans){
 }
 
 // ─── Schema versioning ──────────────────────────────────────────
-var APP_VERSION = '1.3.6';
+var APP_VERSION = '1.3.7';
 // Increment SCHEMA_VERSION each time new fields are added.
 // Add a migration function in MIGRATIONS keyed by target version.
 var SCHEMA_VERSION = 1;
@@ -656,25 +656,42 @@ function GeoField(props){
   var label=props.label,value=props.value,onChange=props.onChange,onGeo=props.onGeo,placeholder=props.placeholder;
   var init=props.hasGeo?'ok':'idle';
   var gsts=useState(init),geoSt=gsts[0],setGeoSt=gsts[1];
+  var pgs=useState(null),pendingGeo=pgs[0],setPendingGeo=pgs[1];
+
   function handleInput(v){
     onChange(v);
     clearTimeout(_geoDebounce);
+    setPendingGeo(null);
     if(!v){setGeoSt('idle');onGeo(null);return;}
     setGeoSt('loading');
     _geoDebounce=setTimeout(function(){
-      geocodeAddress(v).then(function(geo){onGeo(geo);setGeoSt('ok');}).catch(function(){onGeo(null);setGeoSt('error');});
+      geocodeAddress(v)
+        .then(function(geo){setGeoSt('pending');setPendingGeo(geo);})
+        .catch(function(){onGeo(null);setGeoSt('error');});
     },1500);
   }
+  function confirm(){onGeo(pendingGeo);setGeoSt('ok');setPendingGeo(null);}
+  function reject(){setPendingGeo(null);setGeoSt('idle');onGeo(null);}
+
   var icon=geoSt==='loading'?html`<i class="ti ti-loader-2" style="animation:spin .8s linear infinite;color:var(--gold);font-size:13px"></i>`
     :geoSt==='ok'?html`<i class="ti ti-map-pin-check" style="color:var(--green);font-size:13px"></i>`
-    :geoSt==='error'?html`<i class="ti ti-map-pin-off" style="color:var(--red);font-size:13px" title="Adresse introuvable"></i>`:null;
+    :geoSt==='error'?html`<i class="ti ti-map-pin-off" style="color:var(--red);font-size:13px"></i>`:null;
+
   return html`<div class="fld">
     <label>${tl(label)}</label>
     <div style="position:relative;display:flex;align-items:center">
       <input style="flex:1;padding-right:28px" value=${value||''} onInput=${function(e){handleInput(e.target.value);}} placeholder=${placeholder||''} />
       ${icon?html`<div style="position:absolute;right:8px;line-height:1">${icon}</div>`:null}
     </div>
-    ${geoSt==='error'?html`<span class="hint" style="color:var(--red)">Adresse non trouvée — vérifiez le format (ex : "12 rue X, 75001 Paris")</span>`:null}
+    ${geoSt==='pending'&&pendingGeo?html`<div style="margin-top:6px;padding:8px 10px;background:rgba(55,138,221,.08);border:.5px solid rgba(55,138,221,.3);border-radius:var(--r);font-size:11px">
+      <div style="color:var(--text2);margin-bottom:6px"><i class="ti ti-map-pin" style="color:#378ADD"></i> <b>Adresse trouvée :</b> ${pendingGeo.display}</div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-primary" style="font-size:11px;padding:4px 10px" onClick=${confirm}><i class="ti ti-check"></i> Confirmer</button>
+        <button class="btn" style="font-size:11px;padding:4px 10px" onClick=${reject}><i class="ti ti-x"></i> Corriger</button>
+      </div>
+    </div>`:null}
+    ${geoSt==='error'?html`<span class="hint" style="color:var(--red)"><i class="ti ti-alert-triangle"></i> Adresse non trouvée — vérifiez le format (ex : "12 rue X, 75001 Paris")</span>`:null}
+    ${geoSt==='ok'?html`<span class="hint" style="color:var(--green)"><i class="ti ti-check"></i> ${props.confirmedDisplay||''}</span>`:null}
   </div>`;
 }
 
@@ -715,6 +732,7 @@ function SectionLocalisation(p){var ans=p.ans,set=p.set;
       <div class="fg fg2">
         <${Field} label="Pays" value=${ans.pays} onChange=${function(v){set('pays',v);}} opts=${Object.keys(COUNTRY_DATA).map(function(k){return COUNTRY_DATA[k].label;})} />
         <${GeoField} label="Adresse / commune" value=${ans.adresse} hasGeo=${!!(ans.adresse_lat&&ans.adresse_lng)}
+          confirmedDisplay=${ans.adresse_display||''}
           onChange=${function(v){set('adresse',v);}}
           onGeo=${function(geo){if(geo){set('adresse_lat',geo.lat);set('adresse_lng',geo.lng);set('adresse_display',geo.display);}else{set('adresse_lat','');set('adresse_lng','');set('adresse_display','');}}}
           placeholder="Ex : 12 rue de la Paix, 75001 Paris" />
