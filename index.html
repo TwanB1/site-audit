@@ -395,7 +395,7 @@ function getCountryCode(ans){
 }
 
 // ─── Schema versioning ──────────────────────────────────────────
-var APP_VERSION = '1.3.7';
+var APP_VERSION = '1.3.8';
 // Increment SCHEMA_VERSION each time new fields are added.
 // Add a migration function in MIGRATIONS keyed by target version.
 var SCHEMA_VERSION = 1;
@@ -1267,14 +1267,14 @@ function CompareMap(p){
         setTimeout(function(){processAudit(idx+1);},needsDelay?1100:0);
       }
 
+      // Always wrap in Promise.resolve to catch synchronous throws
+      var p;
       if(hasCoords){
-        // Coords already stored — instant, no Nominatim call
-        addMarkerAndPOIs(idx,storedLat,storedLng,storedDisplay)
-          .catch(function(e){console.warn('Overpass error',e);})
+        p=Promise.resolve().then(function(){return addMarkerAndPOIs(idx,storedLat,storedLng,storedDisplay);})
+          .catch(function(e){console.warn('Map error',siteName,e);})
           .then(function(){done(false);});
       } else if(addr){
-        // Fallback: geocode via Nominatim (rate-limited)
-        geocodeAddress(addr).then(function(geo){
+        p=geocodeAddress(addr).then(function(geo){
           return addMarkerAndPOIs(idx,geo.lat,geo.lng,geo.display);
         }).catch(function(e){
           warnings.push(siteName+' — adresse introuvable : "'+addr+'"');
@@ -1285,9 +1285,12 @@ function CompareMap(p){
         done(false);
       }
     }
+    // Safety net: force finalize after max wait time
+    var safetyTimer=setTimeout(function(){if(pending>0){pending=0;finalize();}},audits.length*6000+5000);
     processAudit(0);
 
     function finalize(){
+      clearTimeout(safetyTimer);
       setStatus('ready');
       if(warnings.length)setGeoWarnings(warnings);
       setTimeout(function(){
@@ -1316,7 +1319,7 @@ function CompareMap(p){
     ${status==='ready'?html`<div class="cmp-legend">
       ${audits.map(function(a,i){return html`<div key=${a.id} class="cmp-legend-item"><div class="cmp-legend-dot" style=${'background:'+(SITE_COLORS[i]||'#378ADD')}></div><b>${a.project.name||t('no_name')}</b></div>`;})}
       <span style="color:var(--border2)">|</span>
-      ${Object.keys(POI_CONFIG).map(function(k){var c=POI_CONFIG[k];return html`<div key=${k} class="cmp-legend-item"><div class="cmp-legend-dot" style=${'background:'+c.color+';display:flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:'+(k==='parking'?'3px':'50%')} dangerouslySetInnerHTML=${{__html:'<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">'+POI_ICONS[k]+'</svg>'}}></div>${c.label}</div>`;})}
+      ${Object.keys(POI_CONFIG).map(function(k){var c=POI_CONFIG[k];return html`<div key=${k} class="cmp-legend-item"><div class="cmp-legend-dot" style=${'background:'+c.color+';display:flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:'+(k==='parking'?'3px':'50%')} dangerouslySetInnerHTML=${{__html:'<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">'+POI_ICONS[k]+'</svg>'}}></div><span>${tl(c.label)}</span></div>`;})}
     </div>`:null}
   </div>`;
 }
