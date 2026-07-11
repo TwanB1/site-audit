@@ -388,7 +388,7 @@ function getCountryCode(ans){
 }
 
 // ─── Schema versioning ──────────────────────────────────────────
-var APP_VERSION = '1.3.2';
+var APP_VERSION = '1.3.3';
 // Increment SCHEMA_VERSION each time new fields are added.
 // Add a migration function in MIGRATIONS keyed by target version.
 var SCHEMA_VERSION = 1;
@@ -530,7 +530,7 @@ var REPORT_SECTIONS = {
 };
 
 function isAnswered(v){if(v==null||v==='')return false;if(Array.isArray(v))return v.length>0;return true;}
-function fmtAns(v,isScore){if(!isAnswered(v))return '—';if(Array.isArray(v))return v.join(', ');if(isScore&&typeof v==='number')return v+' / 5';return String(v);}
+function fmtAns(v,isScore){if(!isAnswered(v))return '—';if(Array.isArray(v))return v.map(function(x){return tl(String(x));}).join(', ');if(isScore&&typeof v==='number')return v+' / 5';return tl(String(v));}
 // Quality scoring: options ordered best→worst, score = position / total (1.0 = best, 0.0 = worst)
 var QUALITY_MAP = {
   dpe_classe:{opts:['A','B','C','D','E','F','G'],worst:['Non réalisé']},
