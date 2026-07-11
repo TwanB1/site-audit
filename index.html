@@ -395,7 +395,7 @@ function getCountryCode(ans){
 }
 
 // ─── Schema versioning ──────────────────────────────────────────
-var APP_VERSION = '1.3.5';
+var APP_VERSION = '1.3.6';
 // Increment SCHEMA_VERSION each time new fields are added.
 // Add a migration function in MIGRATIONS keyed by target version.
 var SCHEMA_VERSION = 1;
@@ -651,6 +651,33 @@ function Field(props){
   </div>`;
 }
 
+var _geoDebounce=null;
+function GeoField(props){
+  var label=props.label,value=props.value,onChange=props.onChange,onGeo=props.onGeo,placeholder=props.placeholder;
+  var init=props.hasGeo?'ok':'idle';
+  var gsts=useState(init),geoSt=gsts[0],setGeoSt=gsts[1];
+  function handleInput(v){
+    onChange(v);
+    clearTimeout(_geoDebounce);
+    if(!v){setGeoSt('idle');onGeo(null);return;}
+    setGeoSt('loading');
+    _geoDebounce=setTimeout(function(){
+      geocodeAddress(v).then(function(geo){onGeo(geo);setGeoSt('ok');}).catch(function(){onGeo(null);setGeoSt('error');});
+    },1500);
+  }
+  var icon=geoSt==='loading'?html`<i class="ti ti-loader-2" style="animation:spin .8s linear infinite;color:var(--gold);font-size:13px"></i>`
+    :geoSt==='ok'?html`<i class="ti ti-map-pin-check" style="color:var(--green);font-size:13px"></i>`
+    :geoSt==='error'?html`<i class="ti ti-map-pin-off" style="color:var(--red);font-size:13px" title="Adresse introuvable"></i>`:null;
+  return html`<div class="fld">
+    <label>${tl(label)}</label>
+    <div style="position:relative;display:flex;align-items:center">
+      <input style="flex:1;padding-right:28px" value=${value||''} onInput=${function(e){handleInput(e.target.value);}} placeholder=${placeholder||''} />
+      ${icon?html`<div style="position:absolute;right:8px;line-height:1">${icon}</div>`:null}
+    </div>
+    ${geoSt==='error'?html`<span class="hint" style="color:var(--red)">Adresse non trouvée — vérifiez le format (ex : "12 rue X, 75001 Paris")</span>`:null}
+  </div>`;
+}
+
 function Stars(props){
   var label=tl(props.label),value=props.value,onChange=props.onChange,isNew=props.isNew;
   var hs=useState(0),hover=hs[0],setHover=hs[1];
@@ -687,7 +714,10 @@ function SectionLocalisation(p){var ans=p.ans,set=p.set;
     <div class="card"><div class="sec-title"><i class="ti ti-map-pin"></i> ${tl('Localisation')}</div>
       <div class="fg fg2">
         <${Field} label="Pays" value=${ans.pays} onChange=${function(v){set('pays',v);}} opts=${Object.keys(COUNTRY_DATA).map(function(k){return COUNTRY_DATA[k].label;})} />
-        <${Field} label="Adresse / commune" value=${ans.adresse} onChange=${function(v){set('adresse',v);}} placeholder="Ex : 12 rue de la Paix, 75001 Paris" />
+        <${GeoField} label="Adresse / commune" value=${ans.adresse} hasGeo=${!!(ans.adresse_lat&&ans.adresse_lng)}
+          onChange=${function(v){set('adresse',v);}}
+          onGeo=${function(geo){if(geo){set('adresse_lat',geo.lat);set('adresse_lng',geo.lng);set('adresse_display',geo.display);}else{set('adresse_lat','');set('adresse_lng','');set('adresse_display','');}}}
+          placeholder="Ex : 12 rue de la Paix, 75001 Paris" />
       </div>
       <div class="fg fg2">
         <${Field} label="Zone PLU" value=${ans.zone_plu} onChange=${function(v){set('zone_plu',v);}} opts=${['U — Urbanisée','AU — À urbaniser','N — Naturelle','A — Agricole']} />
@@ -1183,24 +1213,13 @@ function CompareMap(p){
     var pending=audits.length;
     var warnings=[];
 
-    // Sequential geocoding — Nominatim requires max 1 req/s
-    function processAudit(idx){
-      if(idx>=audits.length)return;
+    function addMarkerAndPOIs(idx, lat, lng, display){
       var audit=audits[idx];
-      var addr=audit.answers.adresse;
       var siteName=audit.project.name||('Site '+(idx+1));
-      var next=function(){setTimeout(function(){processAudit(idx+1);},1100);};
-      if(!addr){
-        warnings.push(siteName+' — adresse non renseignée');
-        pending--;if(!pending)finalize();next();return;
-      }
-
-      geocodeAddress(addr).then(function(geo){
-        allCoords.push([geo.lat,geo.lng]);
-        L.marker([geo.lat,geo.lng],{icon:createSiteIcon(SITE_COLORS[idx]||'#378ADD'),zIndexOffset:1000}).addTo(map)
-          .bindPopup('<b style="font-size:13px">'+siteName+'</b><br><span style="font-size:11px;color:#666">'+geo.display+'</span>');
-        return queryOverpass(geo.lat,geo.lng);
-      }).then(function(pois){
+      allCoords.push([lat,lng]);
+      L.marker([lat,lng],{icon:createSiteIcon(SITE_COLORS[idx]||'#378ADD'),zIndexOffset:1000}).addTo(map)
+        .bindPopup('<b style="font-size:13px">'+siteName+'</b><br><span style="font-size:11px;color:#666">'+display+'</span>');
+      return queryOverpass(lat,lng).then(function(pois){
         if(!pois)return;
         Object.keys(pois).forEach(function(cat){
           var conf=POI_CONFIG[cat];
@@ -1209,14 +1228,44 @@ function CompareMap(p){
               .bindPopup('<div style="font-size:12px;min-width:120px"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><div style="width:8px;height:8px;border-radius:50%;background:'+conf.color+'"></div><b>'+tl(conf.label)+'</b></div>'+(poi.name?'<div style="color:#666">'+poi.name+'</div>':'')+'</div>');
           });
         });
-      }).catch(function(e){
-        warnings.push(siteName+' — adresse introuvable : "'+addr+'"');
-        console.warn('Geocode/Overpass error for',addr,e);
-      }).then(function(){
+      });
+    }
+
+    // Use stored coords when available (no Nominatim call needed)
+    // Only geocode sequentially (1.1s delay) for sites without stored coords
+    function processAudit(idx){
+      if(idx>=audits.length)return;
+      var audit=audits[idx];
+      var addr=audit.answers.adresse;
+      var storedLat=parseFloat(audit.answers.adresse_lat);
+      var storedLng=parseFloat(audit.answers.adresse_lng);
+      var storedDisplay=audit.answers.adresse_display||addr;
+      var siteName=audit.project.name||('Site '+(idx+1));
+      var hasCoords=!isNaN(storedLat)&&!isNaN(storedLng);
+
+      function done(needsDelay){
         pending--;
         if(!pending)finalize();
-        next();
-      });
+        setTimeout(function(){processAudit(idx+1);},needsDelay?1100:0);
+      }
+
+      if(hasCoords){
+        // Coords already stored — instant, no Nominatim call
+        addMarkerAndPOIs(idx,storedLat,storedLng,storedDisplay)
+          .catch(function(e){console.warn('Overpass error',e);})
+          .then(function(){done(false);});
+      } else if(addr){
+        // Fallback: geocode via Nominatim (rate-limited)
+        geocodeAddress(addr).then(function(geo){
+          return addMarkerAndPOIs(idx,geo.lat,geo.lng,geo.display);
+        }).catch(function(e){
+          warnings.push(siteName+' — adresse introuvable : "'+addr+'"');
+          console.warn('Geocode error',addr,e);
+        }).then(function(){done(true);});
+      } else {
+        warnings.push(siteName+' — adresse non renseignée');
+        done(false);
+      }
     }
     processAudit(0);
 
