@@ -193,6 +193,13 @@ var I18N = {
 
 // Field label translations (fr is the source, used as key)
 var FL={
+// POI map labels
+'Arrêts bus':{en:'Bus stops',de:'Bushaltestellen',es:'Paradas de autobús',it:'Fermate bus',pt:'Paragens de autocarro',nl:'Bushaltes'},
+'Métro':{en:'Metro',de:'U-Bahn',es:'Metro',it:'Metro',pt:'Metro',nl:'Metro'},
+'Tramway':{en:'Tram',de:'Straßenbahn',es:'Tranvía',it:'Tram',pt:'Elétrico',nl:'Tram'},
+'Gares':{en:'Train stations',de:'Bahnhöfe',es:'Estaciones de tren',it:'Stazioni ferroviarie',pt:'Estações de comboio',nl:'Treinstations'},
+'Aéroports':{en:'Airports',de:'Flughäfen',es:'Airports',it:'Aeroporti',pt:'Aeroportos',nl:'Luchthavens'},
+'Parkings':{en:'Parking',de:'Parkplätze',es:'Aparcamientos',it:'Parcheggi',pt:'Estacionamentos',nl:'Parkeerplaatsen'},
 // Localisation
 'Pays':{en:'Country',de:'Land',es:'País',it:'Paese',pt:'País',nl:'Land'},
 'Adresse / commune':{en:'Address / city',de:'Adresse / Gemeinde',es:'Dirección / municipio',it:'Indirizzo / comune',pt:'Morada / concelho',nl:'Adres / gemeente'},
@@ -388,7 +395,7 @@ function getCountryCode(ans){
 }
 
 // ─── Schema versioning ──────────────────────────────────────────
-var APP_VERSION = '1.3.3';
+var APP_VERSION = '1.3.4';
 // Increment SCHEMA_VERSION each time new fields are added.
 // Add a migration function in MIGRATIONS keyed by target version.
 var SCHEMA_VERSION = 1;
@@ -1174,33 +1181,37 @@ function CompareMap(p){
     var allCoords=[];
     var pending=audits.length;
 
-    audits.forEach(function(audit,idx){
+    // Sequential geocoding — Nominatim requires max 1 req/s
+    function processAudit(idx){
+      if(idx>=audits.length)return;
+      var audit=audits[idx];
       var addr=audit.answers.adresse;
-      if(!addr){pending--;if(!pending)finalize();return;}
+      var next=function(){setTimeout(function(){processAudit(idx+1);},1100);};
+      if(!addr){pending--;if(!pending)finalize();next();return;}
 
       geocodeAddress(addr).then(function(geo){
         allCoords.push([geo.lat,geo.lng]);
         L.marker([geo.lat,geo.lng],{icon:createSiteIcon(SITE_COLORS[idx]||'#378ADD'),zIndexOffset:1000}).addTo(map)
           .bindPopup('<b style="font-size:13px">'+(audit.project.name||'Site '+(idx+1))+'</b><br><span style="font-size:11px;color:#666">'+geo.display+'</span>');
-
         return queryOverpass(geo.lat,geo.lng);
       }).then(function(pois){
         if(!pois)return;
         Object.keys(pois).forEach(function(cat){
           var conf=POI_CONFIG[cat];
-          var items=pois[cat];
-          items.slice(0,conf.max).forEach(function(poi){
+          pois[cat].slice(0,conf.max).forEach(function(poi){
             L.marker([poi.lat,poi.lng],{icon:createPoiIcon(cat),zIndexOffset:cat==='airport'?500:100}).addTo(map)
-              .bindPopup('<div style="font-size:12px;min-width:120px"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><div style="width:8px;height:8px;border-radius:50%;background:'+conf.color+'"></div><b>'+conf.label+'</b></div>'+(poi.name?'<div style="color:#666">'+poi.name+'</div>':'')+'</div>');
+              .bindPopup('<div style="font-size:12px;min-width:120px"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><div style="width:8px;height:8px;border-radius:50%;background:'+conf.color+'"></div><b>'+tl(conf.label)+'</b></div>'+(poi.name?'<div style="color:#666">'+poi.name+'</div>':'')+'</div>');
           });
         });
       }).catch(function(e){
         console.warn('Geocode/Overpass error for',addr,e);
-      }).finally(function(){
+      }).then(function(){
         pending--;
         if(!pending)finalize();
+        next();
       });
-    });
+    }
+    processAudit(0);
 
     function finalize(){
       setStatus('ready');
