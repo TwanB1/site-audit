@@ -382,6 +382,24 @@ function getCountryCode(ans){
   return code;
 }
 
+// ─── Schema versioning ──────────────────────────────────────────
+// Increment SCHEMA_VERSION each time new fields are added.
+// Add a migration function in MIGRATIONS keyed by target version.
+var SCHEMA_VERSION = 1;
+var MIGRATIONS = {
+  // Example for future use:
+  // 2: function(d){ d.answers.new_field = d.answers.new_field || ''; return d; }
+};
+function migrateAudit(d) {
+  var v = d.schemaVersion || 0;
+  while (v < SCHEMA_VERSION) {
+    v++;
+    if (MIGRATIONS[v]) d = MIGRATIONS[v](d);
+  }
+  d.schemaVersion = SCHEMA_VERSION;
+  return d;
+}
+
 var STORAGE_KEY = 'facilium_audits';
 function loadAudits() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) { return []; } }
 function saveAuditToStorage(audit) {
@@ -391,7 +409,8 @@ function saveAuditToStorage(audit) {
 }
 function deleteAuditFromStorage(id) { localStorage.setItem(STORAGE_KEY, JSON.stringify(loadAudits().filter(function(a){return a.id!==id;}))); }
 function exportAuditJson(audit) {
-  var blob = new Blob([JSON.stringify(audit, null, 2)], { type: 'application/json' });
+  var toExport = Object.assign({}, audit, { schemaVersion: SCHEMA_VERSION });
+  var blob = new Blob([JSON.stringify(toExport, null, 2)], { type: 'application/json' });
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a'); a.href = url;
   a.download = 'audit-' + (audit.project.name || 'sans-nom').replace(/[^a-zA-Z0-9]/g, '_') + '-' + audit.id.slice(0, 8) + '.json';
@@ -400,7 +419,13 @@ function exportAuditJson(audit) {
 function importAuditJson(file) {
   return new Promise(function(resolve, reject) {
     var reader = new FileReader();
-    reader.onload = function() { try { var d = JSON.parse(reader.result); if (!d.id||!d.project||!d.answers) throw 0; resolve(d); } catch(e) { reject(e); } };
+    reader.onload = function() {
+      try {
+        var d = JSON.parse(reader.result);
+        if (!d.id || !d.project || !d.answers) throw new Error('Format invalide');
+        resolve(migrateAudit(d));
+      } catch(e) { reject(e); }
+    };
     reader.onerror = reject; reader.readAsText(file);
   });
 }
@@ -1038,7 +1063,7 @@ function ReportView(p){
 }
 
 // ─── Map helpers ───────────────────────────────────────────────
-var SITE_COLORS=['#378ADD','#E24B4A','#1D9E75'];
+var SITE_COLORS=['#378ADD','#E24B4A','#1D9E75','#BA7517'];
 var POI_ICONS={
   bus_stop:'<path d="M4 16V6a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v10m-16 0h16m-16 0v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-2m8 0v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-2M7 12h10M7 8h10"/>',
   subway:'<path d="M4 17V7a5 5 0 0 1 5-5h6a5 5 0 0 1 5 5v10m-16 0a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2m-16 0h16M6 21l-2 3m14-3 2 3M9 12h6M9 8h6M9 16h.01M15 16h.01"/>',
@@ -1269,7 +1294,7 @@ function App(){
   function handleSave(){exportAuditJson({id:auditId,project:project,answers:ans,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),score:scoreGlobal(ans)});refreshSaved();}
   function handleDel(id){deleteAuditFromStorage(id);setSelectedIds(function(p){return p.filter(function(x){return x!==id;});});refreshSaved();}
   function handleImport(){var inp=document.createElement('input');inp.type='file';inp.accept='.json';inp.multiple=true;inp.onchange=function(){if(!inp.files)return;var promises=[];for(var i=0;i<inp.files.length;i++){promises.push(importAuditJson(inp.files[i]).then(saveAuditToStorage).catch(function(){}));}Promise.all(promises).then(refreshSaved);};inp.click();}
-  function toggleSel(id){setSelectedIds(function(p){if(p.indexOf(id)>=0)return p.filter(function(x){return x!==id;});if(p.length>=3)return p;return p.concat([id]);});}
+  function toggleSel(id){setSelectedIds(function(p){if(p.indexOf(id)>=0)return p.filter(function(x){return x!==id;});if(p.length>=4)return p;return p.concat([id]);});}
 
   if(mode==='landing')return html`<div class="au-vars au-landing"><div class="au-landing-inner">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
