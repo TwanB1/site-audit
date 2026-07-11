@@ -388,7 +388,7 @@ function getCountryCode(ans){
 }
 
 // ─── Schema versioning ──────────────────────────────────────────
-var APP_VERSION = '1.3.1';
+var APP_VERSION = '1.3.2';
 // Increment SCHEMA_VERSION each time new fields are added.
 // Add a migration function in MIGRATIONS keyed by target version.
 var SCHEMA_VERSION = 1;
@@ -1231,7 +1231,8 @@ function CompareMap(p){
 }
 
 function CompareView(p){
-  var audits=p.audits,onBack=p.onBack;
+  var audits=p.audits,onBack=p.onBack,rl=p.lang||currentLang;
+  currentLang=rl;
   var rows=[];
   SECTIONS.forEach(function(sec){
     var qs=REPORT_SECTIONS[sec.id]||[];
@@ -1250,7 +1251,7 @@ function CompareView(p){
     <div class="print-only" style="display:none;margin-bottom:16px">
       <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#888;margin-bottom:4px">${t('comparison_of')} ${audits.length} ${t('audits_word')}</div>
       <div style="font-size:18px;font-weight:700">${audits.map(function(a){return a.project.name||t('no_name');}).join(' vs ')}</div>
-      <div style="font-size:11px;color:#888;margin-top:4px">${new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})}</div>
+      <div style="font-size:11px;color:#888;margin-top:4px">${new Date().toLocaleDateString({fr:'fr-FR',en:'en-GB',de:'de-DE',es:'es-ES',it:'it-IT',pt:'pt-PT',nl:'nl-NL'}[rl]||'fr-FR',{day:'2-digit',month:'long',year:'numeric'})}</div>
     </div>
     <div class="rpt-kpi-row" style="margin-bottom:20px">
       ${audits.map(function(a){return html`<div key=${a.id} class="rpt-kpi"><div class="rpt-kpi-v" style=${'color:'+(a.score>=70?'#1D9E75':a.score>=45?'#BA7517':'#E24B4A')+';font-size:22px'}>${a.score}%</div><div class="rpt-kpi-l">${a.project.name||t('no_name')}</div></div>`;})}
@@ -1259,7 +1260,7 @@ function CompareView(p){
     <table class="cmp-table"><thead><tr><th>${t('criterion')}</th>${audits.map(function(a){return html`<th key=${a.id}>${a.project.name||t('no_name')}</th>`;})}</tr></thead>
     <tbody>${rows.map(function(r,i){
       if(r.type==='header') return html`<tr key=${'h'+i} class="cmp-sec-row"><td colSpan=${audits.length+1} style=${'color:'+r.sec.color}><i class=${'ti '+r.sec.icon}></i> ${tSec(r.sec.id)}</td></tr>`;
-      return html`<tr key=${'d'+i}><td>${r.q.label}</td>${audits.map(function(a){return html`<td key=${a.id}>${fmtAns(a.answers[r.q.key],r.q.label.indexOf('/5')>=0)}</td>`;})}</tr>`;
+      return html`<tr key=${'d'+i}><td>${tl(r.q.label)}</td>${audits.map(function(a){return html`<td key=${a.id}>${fmtAns(a.answers[r.q.key],r.q.label.indexOf('/5')>=0)}</td>`;})}</tr>`;
     })}</tbody></table>
     <div style="margin-top:20px;font-size:9px;color:var(--text3);text-align:center;opacity:.6">© Antoine Bouvier 2016</div>
   </div>`;
@@ -1411,7 +1412,7 @@ function App(){
   if(mode==='compare'){
     var compareAudits=savedAudits.filter(function(a){return selectedIds.indexOf(a.id)>=0;}).map(function(a){return Object.assign({},a,{score:scoreGlobal(a.answers)});});
     return html`<div class="au-vars au-wrap" style="display:block">
-      <${CompareView} audits=${compareAudits} onBack=${function(){setMode('landing');setSelectedIds([]);}} />
+      <${CompareView} audits=${compareAudits} lang=${lang} onBack=${function(){setMode('landing');setSelectedIds([]);}} />
     </div>`;
   }
 
